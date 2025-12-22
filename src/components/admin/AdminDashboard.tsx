@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
+import { approveDriver } from '@/app/admin/actions'
 
 export default function AdminDashboard({ profile, bookings, drivers, customers, fleet, settings, stats }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
