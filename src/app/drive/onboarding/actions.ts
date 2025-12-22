@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
-export async function completeOnboarding(formData: FormData) {
+export async function completeOnboarding(formData: FormData): Promise<{ error?: string } | void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
