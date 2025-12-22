@@ -9,7 +9,7 @@ export default function WaitingForApprovalPage() {
           <LucideClock size={32} />
         </div>
         
-        <h1 className="text-2xl font-bold mb-2">Application Under Review</h1>
+        <h1 className="text-2xl font-bold mb-2 text-black">Application Under Review</h1>
         <p className="text-gray-600 mb-8 leading-relaxed">
           Thanks for completing your profile. Our team is currently reviewing your application and documents. This usually takes 24-48 hours.
         </p>
