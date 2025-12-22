@@ -7,7 +7,7 @@ import { createAdminClient } from '@/utils/supabase/admin'
 
 export async function driverSignup(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean } | void> {
   const supabase = await createClient()
-  const adminAuth = createAdminClient().auth
+  const adminAuth = createAdminClient().auth.admin
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
