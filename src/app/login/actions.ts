@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 
 export async function login(formData: FormData): Promise<{ error?: string; message?: string } | void> {
   const supabase = await createClient()
@@ -43,37 +44,42 @@ export async function login(formData: FormData): Promise<{ error?: string; messa
 
 export async function signup(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean } | void> {
   const supabase = await createClient()
+  const adminAuth = createAdminClient().auth
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = formData.get('fullName') as string
 
-  // Note: If "Confirm email" is disabled in Supabase, this signs in automatically.
-  // If enabled, it sends an email and returns no session.
-  const { data, error } = await supabase.auth.signUp({
+  // 1. Create user with Admin API to skip email verification (auto-confirm)
+  const { data: adminData, error: adminError } = await adminAuth.createUser({
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
     },
   })
 
-  if (error) {
-    return { error: error.message }
+  if (adminError) {
+    return { error: adminError.message }
   }
 
-  if (data.session) {
+  // 2. Sign in the user immediately to establish a session
+  if (adminData.user) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (signInError) {
+      return { error: signInError.message }
+    }
+
     revalidatePath('/', 'layout')
     redirect('/book')
   }
-
-  // If no session, it means email confirmation is required/enabled
-  return { 
-    success: true, 
-    message: 'Account created! Please check your email to confirm your account.' 
-  }
+  
+  return { error: 'Something went wrong during account creation.' }
 }
 
 export async function signout() {

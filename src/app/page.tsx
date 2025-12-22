@@ -2,11 +2,21 @@ import Navbar from '@/components/layout/Navbar'
 import Hero from '@/components/home/Hero'
 import { LucideCar, LucideShieldCheck, LucideClock, LucideMapPin, LucideArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { createClient } from '@/utils/supabase/server'
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let role = null
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    role = profile?.role
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-white text-black font-sans">
-      <Navbar />
+      <Navbar user={user} role={role} />
       <Hero />
 
       {/* Suggestions / Services Section */}
@@ -16,7 +26,7 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <ServiceCard 
-               title="Ride" 
+               title="Point-to-Point Transfers" 
                description="Seamless Point-to-Point Transfers. Luxury at your command."
                image="https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2036&auto=format&fit=crop"
                link="/book"
@@ -111,7 +121,7 @@ export default function Home() {
               <div>
                  <h3 className="font-bold mb-4 text-gray-400">Products</h3>
                  <ul className="space-y-3">
-                    <li><Link href="#" className="hover:text-gray-300">Ride</Link></li>
+                    <li><Link href="#" className="hover:text-gray-300">Point-to-Point Transfers</Link></li>
                     <li><Link href="#" className="hover:text-gray-300">Drive</Link></li>
                     <li><Link href="#" className="hover:text-gray-300">Business</Link></li>
                  </ul>
@@ -156,7 +166,7 @@ function ServiceCard({ title, description, image, link }: any) {
                 <h3 className="text-xl font-bold mb-2">{title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{description}</p>
                 <Link href={link} className="inline-flex items-center text-sm font-medium hover:underline">
-                    Details <LucideArrowRight className="w-4 h-4 ml-1" />
+                    Book Now <LucideArrowRight className="w-4 h-4 ml-1" />
                 </Link>
             </div>
             <div className="h-32 w-full overflow-hidden flex items-end justify-end">

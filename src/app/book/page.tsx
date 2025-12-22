@@ -16,7 +16,7 @@ export default async function BookPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <Navbar />
+      <Navbar user={user} />
       <div className="pt-24 pb-12">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-bold text-center mb-8">Book Your Ride</h1>

@@ -104,6 +104,16 @@ export default function LoginPage() {
                   isLogin ? 'Log in' : 'Sign up'
               )}
             </button>
+
+            {!isLogin && (
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                By signing up, you agree to our{' '}
+                <Link href="/terms" className="underline hover:text-black">
+                  Terms of Service
+                </Link>
+                .
+              </p>
+            )}
           </form>
 
           <div className="mt-8 text-left">
