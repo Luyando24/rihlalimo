@@ -23,6 +23,17 @@ export default async function DriverPage() {
     )
   }
 
+  // Check driver status
+  const { data: driver } = await supabase.from('drivers').select('status').eq('id', user.id).single()
+  
+  if (!driver) {
+    redirect('/drive/onboarding')
+  }
+
+  if (driver.status === 'pending_approval') {
+    redirect('/drive/waiting')
+  }
+
   // Get assigned bookings
   const { data: bookings } = await supabase
     .from('bookings')

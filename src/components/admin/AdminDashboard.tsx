@@ -288,7 +288,12 @@ function DashboardView({ bookings, stats }: any) {
                 <div className="space-y-6">
                     <div className="bg-black text-white rounded-xl p-6">
                         <h3 className="font-bold text-lg mb-2">Driver Applications</h3>
-                        <p className="text-gray-400 text-sm mb-6">3 new drivers are waiting for approval.</p>
+                        <p className="text-gray-400 text-sm mb-6">
+                            {stats.pendingDrivers > 0 
+                                ? `${stats.pendingDrivers} new driver(s) waiting for approval.`
+                                : "No new driver applications."
+                            }
+                        </p>
                         <button className="w-full bg-white text-black font-medium py-2 rounded-lg hover:bg-gray-100 transition-colors">
                             Review Applications
                         </button>
@@ -398,6 +403,15 @@ function BookingsView({ bookings }: any) {
 }
 
 function DriversView({ drivers }: any) {
+    const handleApprove = async (driverId: string) => {
+        if (confirm('Are you sure you want to approve this driver?')) {
+            const result = await approveDriver(driverId)
+            if (result.error) {
+                alert(result.error)
+            }
+        }
+    }
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
              <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -418,6 +432,7 @@ function DriversView({ drivers }: any) {
                             <th className="px-6 py-3">Name</th>
                             <th className="px-6 py-3">Contact</th>
                             <th className="px-6 py-3">Status</th>
+                            <th className="px-6 py-3">License</th>
                             <th className="px-6 py-3">Joined</th>
                             <th className="px-6 py-3">Rating</th>
                             <th className="px-6 py-3">Actions</th>
@@ -429,28 +444,36 @@ function DriversView({ drivers }: any) {
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
-                                            {driver.full_name?.charAt(0) || 'D'}
+                                            {driver.profiles?.full_name?.charAt(0) || 'D'}
                                         </div>
-                                        <div className="font-medium">{driver.full_name}</div>
+                                        <div className="font-medium">{driver.profiles?.full_name}</div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2 text-gray-500 mb-1">
                                         <LucideMail size={14} />
-                                        <span>{driver.email}</span>
+                                        <span>{driver.profiles?.email}</span>
                                     </div>
-                                    {driver.phone && (
+                                    {driver.profiles?.phone && (
                                         <div className="flex items-center gap-2 text-gray-500">
                                             <LucidePhone size={14} />
-                                            <span>{driver.phone}</span>
+                                            <span>{driver.profiles?.phone}</span>
                                         </div>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                                        <LucideShieldCheck size={12} />
-                                        Active
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border
+                                        ${driver.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}
+                                        ${driver.status === 'offline' ? 'bg-gray-50 text-gray-600 border-gray-200' : ''}
+                                        ${driver.status === 'pending_approval' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : ''}
+                                        ${!['active', 'offline', 'pending_approval'].includes(driver.status) ? 'bg-gray-50 text-gray-700 border-gray-200' : ''}
+                                    `}>
+                                        {driver.status === 'active' && <LucideShieldCheck size={12} />}
+                                        {driver.status === 'pending_approval' ? 'Pending' : driver.status?.charAt(0).toUpperCase() + driver.status?.slice(1)}
                                     </span>
+                                </td>
+                                <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                                    {driver.license_number}
                                 </td>
                                 <td className="px-6 py-4 text-gray-500">
                                     {driver.created_at ? new Date(driver.created_at).toLocaleDateString() : 'N/A'}
@@ -461,13 +484,23 @@ function DriversView({ drivers }: any) {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <button className="text-sm font-medium text-black hover:underline">Manage</button>
+                                    <div className="flex gap-2">
+                                        {driver.status === 'pending_approval' && (
+                                            <button 
+                                                onClick={() => handleApprove(driver.id)}
+                                                className="px-3 py-1 bg-black text-white rounded text-xs font-medium hover:bg-gray-800"
+                                            >
+                                                Approve
+                                            </button>
+                                        )}
+                                        <button className="text-sm font-medium text-black hover:underline">Manage</button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
                          {(!drivers || drivers.length === 0) && (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No drivers found.</td>
+                                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No drivers found.</td>
                             </tr>
                         )}
                     </tbody>

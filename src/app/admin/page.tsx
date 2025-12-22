@@ -44,12 +44,22 @@ export default async function AdminPage() {
     .select('*', { count: 'exact', head: true })
     .eq('role', 'customer')
 
-  // Fetch Drivers
+  // Fetch Drivers with their status
   const { data: drivers } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'driver')
+    .from('drivers')
+    .select(`
+      *,
+      profiles (
+        full_name,
+        email,
+        phone,
+        created_at
+      )
+    `)
     .order('created_at', { ascending: false })
+
+  // Calculate pending drivers
+  const pendingDriversCount = drivers?.filter(d => d.status === 'pending_approval').length || 0
 
   // Fetch Customers
   const { data: customers } = await supabase
@@ -85,7 +95,8 @@ export default async function AdminPage() {
       totalRevenue,
       activeBookings: activeBookings || 0,
       activeDrivers: totalDrivers || 0,
-      totalCustomers: totalCustomers || 0
+      totalCustomers: totalCustomers || 0,
+      pendingDrivers: pendingDriversCount
   }
 
   return (

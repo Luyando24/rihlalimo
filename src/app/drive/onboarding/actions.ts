@@ -19,12 +19,12 @@ export async function completeOnboarding(formData: FormData): Promise<{ error?: 
   const { error } = await supabaseAdmin.from('drivers').insert({
     id: user.id,
     license_number: licenseNumber,
-    status: 'offline' // default
+    status: 'pending_approval' // Set status to pending approval
   })
 
   if (error) {
     return { error: error.message }
   }
 
-  redirect('/driver')
+  redirect('/drive/waiting')
 }
