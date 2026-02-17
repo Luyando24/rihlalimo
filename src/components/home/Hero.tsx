@@ -236,7 +236,7 @@ export default function Hero() {
         </div>
 
         {/* Right Content - Image */}
-        <div className="w-full md:w-1/2 lg:w-7/12 relative h-[50vh] md:h-auto md:absolute md:right-0 md:top-0 md:bottom-0">
+        <div className="w-full md:w-1/2 lg:w-7/12 relative h-[300px] md:h-auto md:absolute md:right-0 md:top-0 md:bottom-0 mt-8 md:mt-0">
              {/* Using a placeholder that mimics the Uber style - clean, lifestyle or abstract car */}
              <div 
                 className="w-full h-full bg-cover bg-center md:rounded-l-3xl"

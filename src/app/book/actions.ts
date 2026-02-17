@@ -1,6 +1,6 @@
 'use server'
 
-import { calculateFare, getPricingRules } from '@/utils/pricing'
+import { calculateFare } from '@/utils/pricing'
 import { stripe } from '@/utils/stripe/server'
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
