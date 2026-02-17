@@ -65,12 +65,20 @@ export default async function Home() {
                 Track your rides, view booking history, and manage your profile with ease. Your luxury travel dashboard.
               </p>
               <div className="flex gap-4">
-                 <Link href="/login" className="bg-black text-white px-8 py-3 rounded-full font-medium hover:bg-gray-800 transition-colors">
-                    Log in
-                 </Link>
-                 <Link href="/login" className="bg-gray-100 text-black px-8 py-3 rounded-full font-medium hover:bg-gray-200 transition-colors">
-                    Sign up
-                 </Link>
+                 {user ? (
+                   <Link href={role === 'admin' ? '/admin' : role === 'driver' ? '/driver' : '/dashboard'} className="bg-black text-white px-8 py-3 rounded-full font-medium hover:bg-gray-800 transition-colors">
+                      Go to Dashboard
+                   </Link>
+                 ) : (
+                   <>
+                     <Link href="/login" className="bg-black text-white px-8 py-3 rounded-full font-medium hover:bg-gray-800 transition-colors">
+                        Log in
+                     </Link>
+                     <Link href="/login" className="bg-gray-100 text-black px-8 py-3 rounded-full font-medium hover:bg-gray-200 transition-colors">
+                        Sign up
+                     </Link>
+                   </>
+                 )}
               </div>
            </div>
         </div>
