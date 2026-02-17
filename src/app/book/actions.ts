@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { Client, TravelMode, UnitSystem } from "@googlemaps/google-maps-services-js"
 import { getSystemDistanceUnit } from '@/app/admin/actions'
-import { sendAdminNewBookingEmail } from '@/utils/notifications'
+import { sendAdminNewBookingEmail, sendCustomerBookingConfirmationEmail } from '@/utils/notifications'
 
 const googleMapsClient = new Client({});
 
@@ -225,6 +225,13 @@ export async function createBookingAction(bookingData: any) {
     } catch (emailError) {
       console.error('Failed to send admin notification email:', emailError)
       // Continue execution - don't fail the booking just because email failed
+    }
+
+    // Send email notification to customer
+    try {
+      await sendCustomerBookingConfirmationEmail(booking.id)
+    } catch (emailError) {
+      console.error('Failed to send customer confirmation email:', emailError)
     }
 
     // 3. Initialize Payment (Mock or Real)

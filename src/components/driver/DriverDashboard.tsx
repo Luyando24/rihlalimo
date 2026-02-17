@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
+import { acceptTrip, startTrip, completeTrip } from '@/app/driver/actions'
 
 export default function DriverDashboard({ profile, bookings, stats }: any) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -268,8 +269,34 @@ function StatCard({ label, value, icon }: any) {
 
 
 function TripCard({ booking }: any) {
+    const [loading, setLoading] = useState(false)
     const isHourly = booking.service_type === 'hourly'
     const isAirport = booking.service_type === 'airport_pickup' || booking.service_type === 'airport_dropoff'
+
+    const handleAccept = async () => {
+        setLoading(true)
+        const result = await acceptTrip(booking.id)
+        setLoading(false)
+        if (result.error) alert(result.error)
+    }
+
+    const handleStart = async () => {
+        if (confirm('Start this trip?')) {
+            setLoading(true)
+            const result = await startTrip(booking.id)
+            setLoading(false)
+            if (result.error) alert(result.error)
+        }
+    }
+
+    const handleComplete = async () => {
+        if (confirm('Complete this trip?')) {
+            setLoading(true)
+            const result = await completeTrip(booking.id)
+            setLoading(false)
+            if (result.error) alert(result.error)
+        }
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -330,7 +357,55 @@ function TripCard({ booking }: any) {
                 <div className="font-bold text-lg">
                     ${(booking.total_price_calculated * 0.7).toFixed(2)} <span className="text-gray-400 text-sm font-normal">est. earnings</span>
                 </div>
-                <button className="text-sm font-medium text-black underline hover:text-gray-600 transition-colors">Accept Trip</button>
+                
+                {loading ? (
+                    <span className="text-sm text-gray-400 animate-pulse">Processing...</span>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        {booking.status === 'assigned' && (
+                            <button 
+                                onClick={handleAccept}
+                                className="px-4 py-2 bg-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 transition-colors"
+                            >
+                                Accept Trip
+                            </button>
+                        )}
+                        {booking.status === 'driver_accepted' && (
+                            <button 
+                                onClick={handleStart}
+                                className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                            >
+                                <LucideNavigation size={16} />
+                                Start Trip
+                            </button>
+                        )}
+                        {booking.status === 'in_progress' && (
+                            <button 
+                                onClick={handleComplete}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <LucideCheckCircle size={16} />
+                                Complete Trip
+                            </button>
+                        )}
+                        {booking.status === 'completed' && (
+                            <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full uppercase border border-green-100">
+                                Completed
+                            </span>
+                        )}
+                        {booking.status === 'cancelled' && (
+                            <span className="px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full uppercase border border-red-100">
+                                Cancelled
+                            </span>
+                        )}
+                        {/* Fallback for other statuses */}
+                        {!['assigned', 'driver_accepted', 'in_progress', 'completed', 'cancelled'].includes(booking.status) && (
+                            <span className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-full uppercase">
+                                {booking.status.replace('_', ' ')}
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )

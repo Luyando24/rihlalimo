@@ -50,7 +50,9 @@ import {
     addTimeMultiplier,
     deleteTimeMultiplier,
     assignDriver,
-    setSystemDistanceUnit
+    setSystemDistanceUnit,
+    cancelBooking,
+    completeBooking
 } from '@/app/admin/actions'
 import { getVehicleTypes } from '@/app/book/actions'
 
@@ -362,6 +364,7 @@ function BookingsView({ bookings, drivers }: any) {
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [selectedBooking, setSelectedBooking] = useState<any>(null)
     const [assigning, setAssigning] = useState(false)
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     const handleAssignClick = (booking: any) => {
         setSelectedBooking(booking)
@@ -378,6 +381,28 @@ function BookingsView({ bookings, drivers }: any) {
             setSelectedBooking(null)
         } else {
             alert(result.error)
+        }
+    }
+
+    const handleCancelBooking = async (bookingId: string) => {
+        if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+            setActionLoading(bookingId)
+            const result = await cancelBooking(bookingId)
+            setActionLoading(null)
+            if (result.error) {
+                alert(result.error)
+            }
+        }
+    }
+
+    const handleCompleteBooking = async (bookingId: string) => {
+        if (confirm('Are you sure you want to mark this booking as completed?')) {
+            setActionLoading(bookingId)
+            const result = await completeBooking(bookingId)
+            setActionLoading(null)
+            if (result.error) {
+                alert(result.error)
+            }
         }
     }
 
@@ -525,8 +550,34 @@ function BookingsView({ bookings, drivers }: any) {
                                                 </span>
                                             </div>
                                         ) : null}
-                                        <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                                        <button className="p-1 hover:bg-gray-100 rounded transition-colors group relative">
                                             <LucideMoreHorizontal size={16} className="text-gray-500" />
+                                            
+                                            {/* Dropdown Menu */}
+                                            <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg hidden group-hover:block z-10">
+                                                {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                                                    <>
+                                                        <div 
+                                                            onClick={() => handleCancelBooking(booking.id)}
+                                                            className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer flex items-center gap-2"
+                                                        >
+                                                            <LucideXCircle size={14} />
+                                                            Cancel Booking
+                                                        </div>
+                                                        <div 
+                                                            onClick={() => handleCompleteBooking(booking.id)}
+                                                            className="w-full text-left px-4 py-2 text-xs text-green-600 hover:bg-green-50 cursor-pointer flex items-center gap-2"
+                                                        >
+                                                            <LucideCheckCircle size={14} />
+                                                            Complete
+                                                        </div>
+                                                    </>
+                                                )}
+                                                <div className="w-full text-left px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 cursor-pointer flex items-center gap-2 border-t border-gray-100">
+                                                    <LucideEdit2 size={14} />
+                                                    Edit Details
+                                                </div>
+                                            </div>
                                         </button>
                                     </div>
                                 </td>

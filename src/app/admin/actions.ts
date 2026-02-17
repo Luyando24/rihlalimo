@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { sendAssignmentEmail } from '@/utils/notifications'
+import { sendAssignmentEmail, sendCustomerBookingStatusUpdateEmail } from '@/utils/notifications'
 
 export async function approveDriver(driverId: string) {
   const supabase = await createClient()
@@ -74,11 +74,107 @@ export async function assignDriver(bookingId: string, driverId: string) {
   }
 
   // Send email notification to driver
-  await sendAssignmentEmail(bookingId, driverId)
+  try {
+    await sendAssignmentEmail(bookingId, driverId)
+  } catch (emailError) {
+    console.error('Failed to send driver assignment email:', emailError)
+  }
+
+  // Send email notification to customer
+  try {
+    await sendCustomerBookingStatusUpdateEmail(bookingId)
+  } catch (emailError) {
+    console.error('Failed to send customer status update email:', emailError)
+  }
 
   revalidatePath('/admin')
     return { success: true }
   }
+
+export async function cancelBooking(bookingId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  // Verify admin role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') {
+    return { error: 'Unauthorized' }
+  }
+
+  const supabaseAdmin = createAdminClient()
+
+  const { error } = await supabaseAdmin
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('id', bookingId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  // Send email notification to customer
+  try {
+    await sendCustomerBookingStatusUpdateEmail(bookingId)
+  } catch (emailError) {
+    console.error('Failed to send customer status update email:', emailError)
+  }
+
+  revalidatePath('/admin')
+  return { success: true }
+}
+
+export async function completeBooking(bookingId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  // Verify admin role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') {
+    return { error: 'Unauthorized' }
+  }
+
+  const supabaseAdmin = createAdminClient()
+
+  const { error } = await supabaseAdmin
+    .from('bookings')
+    .update({ 
+        status: 'completed',
+        completed_at: new Date().toISOString()
+    })
+    .eq('id', bookingId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  // Send email notification to customer
+  try {
+    await sendCustomerBookingStatusUpdateEmail(bookingId)
+  } catch (emailError) {
+    console.error('Failed to send customer status update email:', emailError)
+  }
+
+  revalidatePath('/admin')
+  return { success: true }
+}
 
 export async function getSystemDistanceUnit() {
     const supabase = await createClient()
