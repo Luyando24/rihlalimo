@@ -14,13 +14,19 @@ export default async function BookPage() {
     redirect('/login')
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-white font-sans text-black">
       <Navbar user={user} />
       <div className="pt-24 pb-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-bold text-center mb-8">Book Your Ride</h1>
-          <BookingWizard />
+          <h1 className="text-3xl font-bold text-center mb-8 text-black">Book Your Ride</h1>
+          <BookingWizard user={user} profile={profile} />
         </div>
       </div>
     </div>

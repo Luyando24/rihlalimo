@@ -29,19 +29,19 @@ export default async function Home() {
                title="Point-to-Point Transfers" 
                description="Seamless Point-to-Point Transfers. Luxury at your command."
                image="https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2036&auto=format&fit=crop"
-               link="/book"
+               link="/book?service=point_to_point"
             />
              <ServiceCard 
                title="Hourly" 
                description="Hourly Charter. Your personal chauffeur for the day."
                image="https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=2069&auto=format&fit=crop"
-               link="/book"
+               link="/book?service=hourly"
             />
              <ServiceCard 
                title="Airport" 
                description="Airport Transfers. Stress-free arrivals and departures."
                image="https://images.unsplash.com/photo-1583267746897-2cf415887172?q=80&w=2070&auto=format&fit=crop"
-               link="/book"
+               link="/book?service=airport_pickup"
             />
           </div>
         </div>

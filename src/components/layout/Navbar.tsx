@@ -12,7 +12,7 @@ export default function Navbar({ user, role }: NavbarProps) {
   const getDashboardLink = () => {
     if (role === 'admin') return '/admin'
     if (role === 'driver') return '/driver'
-    return '/book'
+    return '/dashboard'
   }
 
   return (

@@ -53,6 +53,16 @@ export default function LoginPage() {
                />
             )}
             
+            {!isLogin && (
+               <input
+                 name="phone"
+                 type="tel"
+                 required
+                 className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                 placeholder="Phone Number"
+               />
+            )}
+            
             <input
               name="email"
               type="email"

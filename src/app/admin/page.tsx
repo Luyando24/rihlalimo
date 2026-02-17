@@ -25,7 +25,7 @@ export default async function AdminPage() {
 
   const { data: bookings } = await supabase
     .from('bookings')
-    .select('*, profiles(full_name, email)')
+    .select('*, profiles(full_name, email), vehicle_types(name)')
     .order('created_at', { ascending: false })
 
   // Calculate real stats
@@ -80,6 +80,9 @@ export default async function AdminPage() {
   const { data: airportFees } = await supabase.from('airport_fees').select('*').order('created_at', { ascending: false })
   const { data: timeMultipliers } = await supabase.from('time_multipliers').select('*').order('created_at', { ascending: false })
 
+  // Fetch Vehicle Types
+  const { data: vehicleTypes } = await supabase.from('vehicle_types').select('*').order('name')
+
   const settings = {
     pricingRules,
     hourlyRates,
@@ -102,10 +105,11 @@ export default async function AdminPage() {
   return (
     <AdminDashboard 
         profile={profile}
-        bookings={bookings}
-        drivers={drivers}
-        customers={customers}
-        fleet={fleet}
+        bookings={bookings || []}
+        drivers={drivers || []}
+        customers={customers || []}
+        fleet={fleet || []}
+        vehicleTypes={vehicleTypes || []}
         settings={settings}
         stats={stats}
     />

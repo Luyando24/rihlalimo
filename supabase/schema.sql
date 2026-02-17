@@ -39,7 +39,8 @@ create table public.vehicle_types (
   capacity_luggage int not null,
   image_url text,
   base_fare_usd decimal(10,2) not null, -- Base price
-  price_per_mile_usd decimal(10,2) not null,
+  price_per_distance_usd decimal(10,2) not null,
+  distance_unit text default 'km' check (distance_unit in ('mile', 'km')),
   price_per_hour_usd decimal(10,2) not null, -- For hourly services
   min_hours_booking int default 2,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -179,7 +180,7 @@ create table public.bookings (
   
   pickup_time timestamp with time zone not null,
   duration_minutes_estimated int,
-  distance_miles_estimated decimal(10,2),
+  distance_km_estimated decimal(10,2),
   
   -- Financials
   total_price_calculated decimal(10,2) not null,

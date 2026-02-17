@@ -15,7 +15,8 @@ import {
   LucideNavigation,
   LucideDollarSign,
   LucideClock,
-  LucideCheckCircle
+  LucideCheckCircle,
+  LucidePlane
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
@@ -265,13 +266,17 @@ function StatCard({ label, value, icon }: any) {
     )
 }
 
+
 function TripCard({ booking }: any) {
+    const isHourly = booking.service_type === 'hourly'
+    const isAirport = booking.service_type === 'airport_pickup' || booking.service_type === 'airport_dropoff'
+
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
                  <div className="flex items-center gap-3">
                     <div className="bg-gray-100 p-2 rounded-lg">
-                        <LucideCar size={24} className="text-black" />
+                        {isAirport ? <LucidePlane size={24} className="text-black" /> : <LucideCar size={24} className="text-black" />}
                     </div>
                     <div>
                         <div className="font-bold text-lg">
@@ -282,29 +287,50 @@ function TripCard({ booking }: any) {
                         </div>
                     </div>
                  </div>
-                 <span className="px-3 py-1 bg-gray-100 text-xs font-bold rounded-full uppercase">
-                    {booking.service_type}
-                 </span>
+                 <div className="flex flex-col items-end gap-1">
+                    <span className="px-3 py-1 bg-gray-100 text-xs font-bold rounded-full uppercase">
+                        {booking.service_type.replace(/_/g, ' ')}
+                    </span>
+                    {booking.meet_and_greet && (
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full uppercase">
+                            Meet & Greet
+                        </span>
+                    )}
+                 </div>
             </div>
+            
+            {(isAirport && booking.flight_number) && (
+                <div className="mb-4 p-3 bg-blue-50 text-blue-900 rounded-lg text-sm flex items-center gap-2">
+                    <LucidePlane size={16} />
+                    <span>Flight: <strong>{booking.airline} {booking.flight_number}</strong></span>
+                </div>
+            )}
+
+            {isHourly && (
+                <div className="mb-4 p-3 bg-blue-50 text-blue-900 rounded-lg text-sm flex items-center gap-2">
+                    <LucideClock size={16} />
+                    <span>Duration: <strong>{Math.round(booking.duration_minutes_estimated / 60)} Hours</strong></span>
+                </div>
+            )}
             
             <div className="relative pl-4 border-l-2 border-gray-100 ml-4 space-y-6 my-4">
                  <div className="relative">
                      <div className="absolute -left-[21px] top-1 w-3 h-3 bg-black rounded-full border-2 border-white ring-1 ring-gray-200"></div>
-                     <p className="text-sm text-gray-500 mb-1">PICKUP</p>
-                     <p className="font-medium">{booking.pickup_location_address}</p>
+                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">PICKUP</p>
+                     <p className="font-medium text-gray-900">{booking.pickup_location_address}</p>
                  </div>
                  <div className="relative">
                      <div className="absolute -left-[21px] top-1 w-3 h-3 bg-white border-2 border-black"></div>
-                     <p className="text-sm text-gray-500 mb-1">DROP-OFF</p>
-                     <p className="font-medium">{booking.dropoff_location_address || 'As directed'}</p>
+                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">DROP-OFF</p>
+                     <p className="font-medium text-gray-900">{booking.dropoff_location_address || 'As Directed'}</p>
                  </div>
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div className="font-bold">
+                <div className="font-bold text-lg">
                     ${(booking.total_price_calculated * 0.7).toFixed(2)} <span className="text-gray-400 text-sm font-normal">est. earnings</span>
                 </div>
-                <button className="text-sm font-medium text-black underline">View Details</button>
+                <button className="text-sm font-medium text-black underline hover:text-gray-600 transition-colors">Accept Trip</button>
             </div>
         </div>
     )

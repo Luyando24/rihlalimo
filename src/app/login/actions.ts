@@ -35,7 +35,7 @@ export async function login(formData: FormData): Promise<{ error?: string; messa
     } else if (profile?.role === 'driver') {
       redirect('/driver')
     } else {
-      redirect('/book') // Redirect customers to booking instead of home
+      redirect('/dashboard')
     }
   }
 
@@ -49,6 +49,7 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
   const email = formData.get('email') as string
   const password = formData.get('password') as string
   const fullName = formData.get('fullName') as string
+  const phone = formData.get('phone') as string
 
   // 1. Create user with Admin API to skip email verification (auto-confirm)
   const { data: adminData, error: adminError } = await adminAuth.createUser({
@@ -57,6 +58,7 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
     email_confirm: true,
     user_metadata: {
       full_name: fullName,
+      phone: phone,
     },
   })
 
@@ -75,8 +77,11 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
       return { error: signInError.message }
     }
 
+    // Update profile with phone number (in case trigger only handles full_name)
+    await supabase.from('profiles').update({ phone: phone }).eq('id', adminData.user.id)
+
     revalidatePath('/', 'layout')
-    redirect('/book')
+    redirect('/dashboard')
   }
   
   return { error: 'Something went wrong during account creation.' }
