@@ -862,7 +862,18 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
     })
 
     // Vehicle Type Form
-    const [typeFormData, setTypeFormData] = useState({
+    const [typeFormData, setTypeFormData] = useState<{
+        name: string
+        description: string
+        capacity_passengers: number
+        capacity_luggage: number
+        base_fare_usd: number
+        price_per_distance_usd: number
+        distance_unit: 'km' | 'mile'
+        price_per_hour_usd: number
+        min_hours_booking: number
+        image_url: string
+    }>({
         name: '',
         description: '',
         capacity_passengers: 4,
@@ -884,7 +895,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
             capacity_luggage: type.capacity_luggage,
             base_fare_usd: type.base_fare_usd,
             price_per_distance_usd: type.price_per_distance_usd,
-            distance_unit: type.distance_unit || 'km',
+            distance_unit: (type.distance_unit || 'km') as 'km' | 'mile',
             price_per_hour_usd: type.price_per_hour_usd,
             min_hours_booking: type.min_hours_booking || 2,
             image_url: type.image_url || ''

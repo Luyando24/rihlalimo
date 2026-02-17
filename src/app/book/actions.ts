@@ -1,10 +1,12 @@
 'use server'
 
-import { calculateFare } from '@/utils/pricing'
+import { calculateFare, getPricingRules } from '@/utils/pricing'
 import { stripe } from '@/utils/stripe/server'
 import { createClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
 import { Client, TravelMode, UnitSystem } from "@googlemaps/google-maps-services-js"
 import { getSystemDistanceUnit } from '@/app/admin/actions'
+import { sendAdminNewBookingEmail } from '@/utils/notifications'
 
 const googleMapsClient = new Client({});
 
@@ -215,6 +217,14 @@ export async function createBookingAction(bookingData: any) {
     if (bookingError) {
         console.error('Booking creation failed:', bookingError)
         return { success: false, error: 'Failed to create booking record: ' + bookingError.message }
+    }
+
+    // Send email notification to admin
+    try {
+      await sendAdminNewBookingEmail(booking.id)
+    } catch (emailError) {
+      console.error('Failed to send admin notification email:', emailError)
+      // Continue execution - don't fail the booking just because email failed
     }
 
     // 3. Initialize Payment (Mock or Real)
