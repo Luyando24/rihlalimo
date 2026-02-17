@@ -142,7 +142,6 @@ export async function getQuoteAction(data: {
     const price = await calculateFare({
       serviceType: data.serviceType,
       distanceKm,
-      durationMinutes,
       vehicleTypeId: data.vehicleTypeId,
       pickupTime: new Date(`${data.date}T${data.time}`),
       pickupLocation: data.pickupLocation,

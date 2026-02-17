@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { sendAssignmentEmail } from '@/utils/notifications'
 
 export async function approveDriver(driverId: string) {
   const supabase = await createClient()
@@ -71,6 +72,9 @@ export async function assignDriver(bookingId: string, driverId: string) {
   if (error) {
     return { error: error.message }
   }
+
+  // Send email notification to driver
+  await sendAssignmentEmail(bookingId, driverId)
 
   revalidatePath('/admin')
     return { success: true }
