@@ -24,18 +24,19 @@ export async function acceptTrip(bookingId: string) {
     // Update booking status
     const { error } = await supabase
         .from('bookings')
-        .update({ status: 'confirmed' }) // Or 'accepted' if that's a valid status. Let's stick to 'confirmed' or 'assigned' -> 'en_route'?
-        // The status flow seems to be: pending -> assigned -> (driver accepts) -> en_route -> in_progress -> completed.
-        // But sendCustomerBookingStatusUpdateEmail only handles: assigned, completed, cancelled.
-        // Let's check the allowed statuses in the DB constraint if possible, but for now I'll assume standard flow.
-        // If the email function only handles those 3, maybe we shouldn't send emails for 'en_route' or 'in_progress' yet.
-        // Let's just update status to 'en_route' for accept? Or maybe just keep it 'assigned' and add a flag?
-        // Actually, if the driver accepts, it usually means they are on the way.
+        .update({ status: 'driver_accepted' }) 
         .eq('id', bookingId)
         .eq('driver_id', user.id) // Ensure the driver owns this booking
 
     if (error) {
         return { error: error.message }
+    }
+
+    // Send email to customer
+    try {
+        await sendCustomerBookingStatusUpdateEmail(bookingId)
+    } catch (emailError) {
+        console.error('Failed to send customer status update email:', emailError)
     }
 
     revalidatePath('/driver')
@@ -56,6 +57,13 @@ export async function startTrip(bookingId: string) {
 
     if (error) {
         return { error: error.message }
+    }
+
+    // Send email to customer
+    try {
+        await sendCustomerBookingStatusUpdateEmail(bookingId)
+    } catch (emailError) {
+        console.error('Failed to send customer status update email:', emailError)
     }
 
     revalidatePath('/driver')

@@ -93,3 +93,55 @@ export async function signout() {
   revalidatePath('/', 'layout')
   redirect('/login')
 }
+
+export async function resetPasswordAction(formData: FormData) {
+  const supabase = await createClient()
+  const email = formData.get('email') as string
+
+  if (!email) {
+    return { error: 'Email is required' }
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/dashboard/profile`,
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { message: 'Password reset link sent! Please check your email.' }
+}
+
+export async function sendTestBrandedEmail(email: string) {
+  const { getEmailTemplate } = await import('@/utils/emailTemplates')
+  const { sendEmail } = await import('@/utils/email')
+
+  const content = `
+    <p>This is a demonstration of your new branded email template.</p>
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee; margin: 20px 0;">
+      <p style="margin: 0; font-weight: bold; color: #000;">Template Features:</p>
+      <ul style="margin: 10px 0 0; padding-left: 20px; color: #666;">
+        <li>Clean, minimalist design</li>
+        <li>Custom header with brand typography</li>
+        <li>Clear call-to-action buttons</li>
+        <li>Professional footer with support details</li>
+        <li>Responsive mobile-friendly layout</li>
+      </ul>
+    </div>
+    <p>All system notifications (Bookings, Chauffeur Assignments, and Status Updates) will now use this professional look.</p>
+  `
+
+  const html = getEmailTemplate(
+    'Branded Template Preview',
+    content,
+    `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}`,
+    'Visit Website'
+  )
+
+  return await sendEmail({
+    to: email,
+    subject: 'Rihla Limo - Branded Email Preview',
+    html
+  })
+}

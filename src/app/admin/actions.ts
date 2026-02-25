@@ -176,6 +176,94 @@ export async function completeBooking(bookingId: string) {
   return { success: true }
 }
 
+export async function updateSmtpSettings(settings: {
+  host: string
+  port: number
+  secure: boolean
+  user: string
+  pass: string
+  from_email: string
+  from_name: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  // Verify admin role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') return { error: 'Unauthorized' }
+
+  const supabaseAdmin = createAdminClient()
+
+  const { error } = await supabaseAdmin
+    .from('system_settings')
+    .upsert({
+      key: 'smtp_settings',
+      value: settings,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' })
+
+  if (error) {
+    console.error('Error updating SMTP settings:', error)
+    return { error: error.message }
+  }
+
+  revalidatePath('/admin')
+  return { success: true }
+}
+
+export async function testSmtpAction(testEmail: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') return { error: 'Unauthorized' }
+
+  const { getEmailTemplate } = await import('@/utils/emailTemplates')
+  const { sendEmail } = await import('@/utils/email')
+  
+  const content = `
+    <p>This is a test email to verify your branded SMTP settings in Rihla Limo.</p>
+    <p>If you received this, your email configuration is working correctly and your branded template is active.</p>
+    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 4px; border-left: 4px solid #000; margin: 20px 0;">
+      <strong>Security Note:</strong> Please ensure your SMTP credentials are kept secure.
+    </div>
+  `
+
+  const html = getEmailTemplate(
+    'SMTP Configuration Test',
+    content,
+    `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin`,
+    'Return to Dashboard'
+  )
+
+  const result = await sendEmail({
+    to: testEmail,
+    subject: 'SMTP Test - Rihla Limo',
+    html,
+    text: `SMTP Configuration Test\n\nThis is a test email to verify your branded SMTP settings in Rihla Limo.\n\nSent at: ${new Date().toLocaleString()}`
+  })
+
+  if (!result.success) {
+    return { error: result.error }
+  }
+
+  return { success: true, message: 'Test email sent successfully!' }
+}
+
 export async function getSystemDistanceUnit() {
     const supabase = await createClient()
     const { data: rule } = await supabase

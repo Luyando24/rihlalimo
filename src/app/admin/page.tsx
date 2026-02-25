@@ -83,11 +83,27 @@ export default async function AdminPage() {
   // Fetch Vehicle Types
   const { data: vehicleTypes } = await supabase.from('vehicle_types').select('*').order('name')
 
+  // Fetch SMTP Settings
+  const { data: smtpSettingsData } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'smtp_settings')
+    .single()
+
   const settings = {
     pricingRules,
     hourlyRates,
     airportFees,
-    timeMultipliers
+    timeMultipliers,
+    smtp: smtpSettingsData?.value || {
+        host: '',
+        port: 587,
+        secure: false,
+        user: '',
+        pass: '',
+        from_email: '',
+        from_name: ''
+    }
   }
 
   // Calculate total revenue (simple sum of all bookings for now)

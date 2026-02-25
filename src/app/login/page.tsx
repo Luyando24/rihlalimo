@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { login, signup } from './actions'
+import { login, signup, resetPasswordAction } from './actions'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -15,8 +16,13 @@ export default function LoginPage() {
     setError(null)
     setMessage(null)
     
-    const action = isLogin ? login : signup
-    const result = await action(formData)
+    let result: any
+    if (isForgotPassword) {
+      result = await resetPasswordAction(formData)
+    } else {
+      const action = isLogin ? login : signup
+      result = await action(formData)
+    }
     
     if (result?.error) {
       setError(result.error)
@@ -24,6 +30,9 @@ export default function LoginPage() {
     } else if (result?.message) {
       setMessage(result.message)
       setLoading(false)
+      if (isForgotPassword) {
+        setIsForgotPassword(false)
+      }
     }
   }
 
@@ -39,11 +48,11 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <h2 className="text-3xl md:text-4xl font-bold mb-8 text-left">
-            {isLogin ? 'Log in' : 'Sign up'}
+            {isForgotPassword ? 'Reset Password' : (isLogin ? 'Log in' : 'Sign up')}
           </h2>
 
           <form action={handleSubmit} className="space-y-4">
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
                <input
                  name="fullName"
                  type="text"
@@ -53,7 +62,7 @@ export default function LoginPage() {
                />
             )}
             
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
                <input
                  name="phone"
                  type="tel"
@@ -71,13 +80,31 @@ export default function LoginPage() {
               placeholder="Email address"
             />
 
-            <input
-              name="password"
-              type="password"
-              required
-              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-              placeholder="Password"
-            />
+            {!isForgotPassword && (
+              <input
+                name="password"
+                type="password"
+                required
+                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                placeholder="Password"
+              />
+            )}
+
+            {isLogin && !isForgotPassword && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(true)
+                    setError(null)
+                    setMessage(null)
+                  }}
+                  className="text-sm text-gray-500 hover:text-black transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center">
@@ -111,11 +138,11 @@ export default function LoginPage() {
                       Processing...
                   </span>
               ) : (
-                  isLogin ? 'Log in' : 'Sign up'
+                  isForgotPassword ? 'Send Reset Link' : (isLogin ? 'Log in' : 'Sign up')
               )}
             </button>
 
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <p className="text-xs text-gray-500 mt-4 text-center">
                 By signing up, you agree to our{' '}
                 <Link href="/terms" className="underline hover:text-black">
@@ -124,23 +151,41 @@ export default function LoginPage() {
                 .
               </p>
             )}
+            
+            {isForgotPassword && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(false)
+                    setError(null)
+                    setMessage(null)
+                  }}
+                  className="text-sm text-black font-medium underline hover:text-gray-700 decoration-1 underline-offset-4"
+                >
+                  Back to Log in
+                </button>
+              </div>
+            )}
           </form>
 
-          <div className="mt-8 text-left">
-            <p className="text-gray-600">
-                {isLogin ? "New to Rihla?" : "Already use Rihla?"}{' '}
-                <button
-                    onClick={() => {
-                        setIsLogin(!isLogin)
-                        setError(null)
-                        setMessage(null)
-                    }}
-                    className="text-black font-medium underline hover:text-gray-700 decoration-1 underline-offset-4"
-                >
-                    {isLogin ? 'Sign up' : 'Log in'}
-                </button>
-            </p>
-          </div>
+          {!isForgotPassword && (
+            <div className="mt-8 text-left">
+              <p className="text-gray-600">
+                  {isLogin ? "New to Rihla?" : "Already use Rihla?"}{' '}
+                  <button
+                      onClick={() => {
+                          setIsLogin(!isLogin)
+                          setError(null)
+                          setMessage(null)
+                      }}
+                      className="text-black font-medium underline hover:text-gray-700 decoration-1 underline-offset-4"
+                  >
+                      {isLogin ? 'Sign up' : 'Log in'}
+                  </button>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

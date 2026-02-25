@@ -52,7 +52,9 @@ import {
     assignDriver,
     setSystemDistanceUnit,
     cancelBooking,
-    completeBooking
+    completeBooking,
+    updateSmtpSettings,
+    testSmtpAction
 } from '@/app/admin/actions'
 import { getVehicleTypes } from '@/app/book/actions'
 
@@ -1601,7 +1603,20 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
     const [activeSection, setActiveSection] = useState('pricing')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isTestingSmtp, setIsTestingSmtp] = useState(false)
+    const [testEmail, setTestEmail] = useState('')
     const [formData, setFormData] = useState<any>({})
+    
+    // SMTP Settings State
+    const [smtpSettings, setSmtpSettings] = useState(settings?.smtp || {
+        host: '',
+        port: 587,
+        secure: false,
+        user: '',
+        pass: '',
+        from_email: '',
+        from_name: ''
+    })
 
     const tabs = [
         { id: 'pricing', label: 'Pricing Rules' },
@@ -1609,6 +1624,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
         { id: 'airport', label: 'Airport Fees' },
         { id: 'time', label: 'Time Multipliers' },
         { id: 'system', label: 'System Configuration' },
+        { id: 'email', label: 'Email (SMTP)' },
     ]
 
     const systemDistanceUnit = settings?.pricingRules?.find((r: any) => r.name === 'SYSTEM_DEFAULT_DISTANCE_UNIT')?.description || 'km'
@@ -1621,6 +1637,33 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
             if (!result.success) {
                 alert(result.error)
             }
+        }
+    }
+
+    const handleUpdateSmtp = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsLoading(true)
+        const result = await updateSmtpSettings(smtpSettings)
+        setIsLoading(false)
+        if (result.success) {
+            alert('SMTP settings updated successfully')
+        } else {
+            alert(result.error || 'Failed to update SMTP settings')
+        }
+    }
+
+    const handleTestSmtp = async () => {
+        if (!testEmail) {
+            alert('Please enter a test email address')
+            return
+        }
+        setIsTestingSmtp(true)
+        const result = await testSmtpAction(testEmail)
+        setIsTestingSmtp(false)
+        if (result.success) {
+            alert(result.message)
+        } else {
+            alert(result.error || 'Failed to send test email')
         }
     }
 
@@ -1946,6 +1989,137 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {activeSection === 'email' && (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-200">
+                        <h3 className="font-bold text-lg">SMTP Configuration</h3>
+                        <p className="text-sm text-gray-500">Configure your branded email for notifications.</p>
+                    </div>
+                    <form onSubmit={handleUpdateSmtp} className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Server Settings</h4>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">SMTP Host</label>
+                                    <input 
+                                        type="text" required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                        placeholder="e.g. smtp.gmail.com"
+                                        value={smtpSettings.host}
+                                        onChange={e => setSmtpSettings({...smtpSettings, host: e.target.value})}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Port</label>
+                                        <input 
+                                            type="number" required
+                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                            placeholder="587"
+                                            value={smtpSettings.port}
+                                            onChange={e => setSmtpSettings({...smtpSettings, port: parseInt(e.target.value)})}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Secure (SSL/TLS)</label>
+                                        <div className="flex items-center h-10">
+                                            <input 
+                                                type="checkbox"
+                                                className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                                                checked={smtpSettings.secure}
+                                                onChange={e => setSmtpSettings({...smtpSettings, secure: e.target.checked})}
+                                            />
+                                            <span className="ml-2 text-sm text-gray-600">Use Secure Connection</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Authentication</h4>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Username / Email</label>
+                                    <input 
+                                        type="text" required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                        placeholder="your-email@domain.com"
+                                        value={smtpSettings.user}
+                                        onChange={e => setSmtpSettings({...smtpSettings, user: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Password / App Password</label>
+                                    <input 
+                                        type="password" required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                        placeholder="••••••••••••"
+                                        value={smtpSettings.pass}
+                                        onChange={e => setSmtpSettings({...smtpSettings, pass: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t border-gray-100">
+                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Branding (Sender Details)</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">From Email</label>
+                                    <input 
+                                        type="email" required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                        placeholder="noreply@rihlalimo.com"
+                                        value={smtpSettings.from_email}
+                                        onChange={e => setSmtpSettings({...smtpSettings, from_email: e.target.value})}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-gray-500 uppercase">From Name</label>
+                                    <input 
+                                        type="text" required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                        placeholder="Rihla Limo"
+                                        value={smtpSettings.from_name}
+                                        onChange={e => setSmtpSettings({...smtpSettings, from_name: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end">
+                            <button 
+                                type="submit"
+                                disabled={isLoading}
+                                className="px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                            >
+                                {isLoading ? 'Saving...' : 'Save Email Settings'}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="p-6 bg-gray-50 border-t border-gray-200">
+                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Test Configuration</h4>
+                        <div className="flex gap-4 max-w-md">
+                            <input 
+                                type="email"
+                                className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                placeholder="test@example.com"
+                                value={testEmail}
+                                onChange={e => setTestEmail(e.target.value)}
+                            />
+                            <button 
+                                onClick={handleTestSmtp}
+                                disabled={isTestingSmtp}
+                                className="px-6 py-2 border border-black rounded-lg text-sm font-bold hover:bg-black hover:text-white transition-all disabled:opacity-50"
+                            >
+                                {isTestingSmtp ? 'Sending...' : 'Send Test'}
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Enter an email to send a test message using your current settings.</p>
                     </div>
                 </div>
             )}
