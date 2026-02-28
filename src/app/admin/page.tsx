@@ -13,13 +13,13 @@ export default async function AdminPage() {
 
   if (profile?.role !== 'admin') {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black">
-            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-            <p className="mb-6 text-gray-600">You do not have permission to view this page.</p>
-            <Link href="/" className="px-6 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-800">
-                Return Home
-            </Link>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white text-black">
+        <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+        <p className="mb-6 text-gray-600">You do not have permission to view this page.</p>
+        <Link href="/" className="px-6 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-800">
+          Return Home
+        </Link>
+      </div>
     )
   }
 
@@ -33,7 +33,7 @@ export default async function AdminPage() {
     .from('bookings')
     .select('*', { count: 'exact', head: true })
     .in('status', ['pending', 'confirmed'])
-  
+
   const { count: totalDrivers } = await supabase
     .from('profiles')
     .select('*', { count: 'exact', head: true })
@@ -96,13 +96,13 @@ export default async function AdminPage() {
     airportFees,
     timeMultipliers,
     smtp: smtpSettingsData?.value || {
-        host: '',
-        port: 587,
-        secure: false,
-        user: '',
-        pass: '',
-        from_email: '',
-        from_name: ''
+      host: '',
+      port: 587,
+      secure: false,
+      user: '',
+      pass: '',
+      from_email: '',
+      from_name: ''
     }
   }
 
@@ -110,24 +110,32 @@ export default async function AdminPage() {
   // In a real app, this should be an aggregation query or a separate stats table
   const totalRevenue = bookings?.reduce((acc, booking) => acc + (booking.total_price_calculated || 0), 0) || 0
 
+  // Fetch Admins
+  const { data: adminProfiles } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'admin')
+    .order('created_at', { ascending: false })
+
   const stats = {
-      totalRevenue,
-      activeBookings: activeBookings || 0,
-      activeDrivers: totalDrivers || 0,
-      totalCustomers: totalCustomers || 0,
-      pendingDrivers: pendingDriversCount
+    totalRevenue,
+    activeBookings: activeBookings || 0,
+    activeDrivers: totalDrivers || 0,
+    totalCustomers: totalCustomers || 0,
+    pendingDrivers: pendingDriversCount
   }
 
   return (
-    <AdminDashboard 
-        profile={profile}
-        bookings={bookings || []}
-        drivers={drivers || []}
-        customers={customers || []}
-        fleet={fleet || []}
-        vehicleTypes={vehicleTypes || []}
-        settings={settings}
-        stats={stats}
+    <AdminDashboard
+      profile={profile}
+      bookings={bookings || []}
+      drivers={drivers || []}
+      customers={customers || []}
+      admins={adminProfiles || []}
+      fleet={fleet || []}
+      vehicleTypes={vehicleTypes || []}
+      settings={settings}
+      stats={stats}
     />
   )
 }

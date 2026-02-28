@@ -2,44 +2,44 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  LucideLayoutDashboard, 
-  LucideCalendar, 
-  LucideUsers, 
-  LucideCar, 
-  LucideSettings, 
-  LucideLogOut, 
-  LucideBell, 
-  LucideMenu, 
-  LucideSearch,
-  LucideFilter,
-  LucideMoreHorizontal,
-  LucideCheckCircle,
-  LucideXCircle,
-  LucideDollarSign,
-  LucideTrendingUp,
-  LucidePhone,
-  LucideMail,
-  LucideShieldCheck,
-  LucideUser,
-  LucideArrowLeft,
-  LucideClock,
-  LucidePlus,
-  LucideTrash2,
-  LucideEdit2,
-  LucideX,
-  LucideBriefcase,
-  LucidePlane
+import {
+    LucideLayoutDashboard,
+    LucideCalendar,
+    LucideUsers,
+    LucideCar,
+    LucideSettings,
+    LucideLogOut,
+    LucideBell,
+    LucideMenu,
+    LucideSearch,
+    LucideFilter,
+    LucideMoreHorizontal,
+    LucideCheckCircle,
+    LucideXCircle,
+    LucideDollarSign,
+    LucideTrendingUp,
+    LucidePhone,
+    LucideMail,
+    LucideShieldCheck,
+    LucideUser,
+    LucideArrowLeft,
+    LucideClock,
+    LucidePlus,
+    LucideTrash2,
+    LucideEdit2,
+    LucideX,
+    LucideBriefcase,
+    LucidePlane
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
-import { 
-    approveDriver, 
-    rejectDriver, 
-    addVehicle, 
-    deleteVehicle, 
-    addVehicleType, 
-    deleteVehicleType, 
+import {
+    approveDriver,
+    rejectDriver,
+    addVehicle,
+    deleteVehicle,
+    addVehicleType,
+    deleteVehicleType,
     updateVehicleType,
     addPricingRule,
     deletePricingRule,
@@ -54,176 +54,187 @@ import {
     cancelBooking,
     completeBooking,
     updateSmtpSettings,
-    testSmtpAction
+    testSmtpAction,
+    deleteUser,
+    addAdmin
 } from '@/app/admin/actions'
 import { getVehicleTypes } from '@/app/book/actions'
 
-export default function AdminDashboard({ profile, bookings, drivers, customers, fleet, vehicleTypes, settings, stats }: any) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats }: any) {
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState('dashboard')
+    const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
 
-  const handleViewCustomerHistory = (customer: any) => {
-    setSelectedCustomer(customer)
-    setActiveTab('customer_history')
-  }
+    const handleViewCustomerHistory = (customer: any) => {
+        setSelectedCustomer(customer)
+        setActiveTab('customer_history')
+    }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex text-black font-sans">
-      {/* Sidebar - Mobile Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+    return (
+        <div className="min-h-screen bg-gray-50 flex text-black font-sans">
+            {/* Sidebar - Mobile Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
 
-      {/* Sidebar */}
-      <aside className={`
+            {/* Sidebar */}
+            <aside className={`
         fixed lg:static inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="h-full flex flex-col">
-          {/* Logo */}
-          <div className="p-6 border-b border-gray-100">
-            <h1 className="text-2xl font-normal tracking-tight">RIHLA LIMO</h1>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mt-1">Admin Console</p>
-          </div>
+                <div className="h-full flex flex-col">
+                    {/* Logo */}
+                    <div className="p-6 border-b border-gray-100">
+                        <h1 className="text-2xl font-normal tracking-tight">RIHLA LIMO</h1>
+                        <p className="text-xs text-gray-400 uppercase tracking-wider mt-1">Admin Console</p>
+                    </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            <NavItem 
-              icon={<LucideLayoutDashboard size={20} />} 
-              label="Overview" 
-              active={activeTab === 'dashboard'} 
-              onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
-            />
-            <NavItem 
-              icon={<LucideCalendar size={20} />} 
-              label="Bookings" 
-              active={activeTab === 'bookings'} 
-              onClick={() => { setActiveTab('bookings'); setIsSidebarOpen(false); }}
-            />
-            <NavItem 
-              icon={<LucideUsers size={20} />} 
-              label="Drivers" 
-              active={activeTab === 'drivers'} 
-              onClick={() => { setActiveTab('drivers'); setIsSidebarOpen(false); }}
-            />
-            <NavItem 
-              icon={<LucideUsers size={20} />} 
-              label="Customers" 
-              active={activeTab === 'customers'} 
-              onClick={() => { setActiveTab('customers'); setIsSidebarOpen(false); }}
-            />
-            <NavItem 
-              icon={<LucideCar size={20} />} 
-              label="Fleet" 
-              active={activeTab === 'fleet'} 
-              onClick={() => { setActiveTab('fleet'); setIsSidebarOpen(false); }}
-            />
-            <NavItem 
-              icon={<LucideSettings size={20} />} 
-              label="Settings" 
-              active={activeTab === 'settings'} 
-              onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
-            />
-          </nav>
+                    {/* Navigation */}
+                    <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                        <NavItem
+                            icon={<LucideLayoutDashboard size={20} />}
+                            label="Overview"
+                            active={activeTab === 'dashboard'}
+                            onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideCalendar size={20} />}
+                            label="Bookings"
+                            active={activeTab === 'bookings'}
+                            onClick={() => { setActiveTab('bookings'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideUsers size={20} />}
+                            label="Drivers"
+                            active={activeTab === 'drivers'}
+                            onClick={() => { setActiveTab('drivers'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideUsers size={20} />}
+                            label="Customers"
+                            active={activeTab === 'customers'}
+                            onClick={() => { setActiveTab('customers'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideShieldCheck size={20} />}
+                            label="Admins"
+                            active={activeTab === 'admins'}
+                            onClick={() => { setActiveTab('admins'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideCar size={20} />}
+                            label="Fleet"
+                            active={activeTab === 'fleet'}
+                            onClick={() => { setActiveTab('fleet'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideSettings size={20} />}
+                            label="Settings"
+                            active={activeTab === 'settings'}
+                            onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
+                        />
+                    </nav>
 
-          {/* User Profile / Logout */}
-          <div className="p-4 border-t border-gray-100">
-             <div className="flex items-center gap-3 mb-4 px-2">
-                <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
-                    {profile.full_name?.charAt(0) || 'A'}
+                    {/* User Profile / Logout */}
+                    <div className="p-4 border-t border-gray-100">
+                        <div className="flex items-center gap-3 mb-4 px-2">
+                            <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
+                                {profile.full_name?.charAt(0) || 'A'}
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-bold truncate">{profile.full_name}</p>
+                                <p className="text-xs text-gray-500">Administrator</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => signout()}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+                        >
+                            <LucideLogOut size={18} />
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
-                <div className="overflow-hidden">
-                    <p className="text-sm font-bold truncate">{profile.full_name}</p>
-                    <p className="text-xs text-gray-500">Administrator</p>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+                {/* Header */}
+                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-8">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={toggleSidebar}
+                            className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg lg:hidden"
+                        >
+                            <LucideMenu size={24} />
+                        </button>
+                        <h2 className="text-lg font-bold hidden sm:block">
+                            {activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                        </h2>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="relative hidden md:block">
+                            <LucideSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-black w-64"
+                            />
+                        </div>
+                        <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-full relative">
+                            <LucideBell size={20} />
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        </button>
+                    </div>
+                </header>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+                    {activeTab === 'dashboard' && (
+                        <DashboardView bookings={bookings} stats={stats} />
+                    )}
+                    {activeTab === 'bookings' && (
+                        <BookingsView bookings={bookings} drivers={drivers} />
+                    )}
+                    {activeTab === 'drivers' && (
+                        <DriversView drivers={drivers} />
+                    )}
+                    {activeTab === 'customers' && (
+                        <CustomersView customers={customers} onViewHistory={handleViewCustomerHistory} />
+                    )}
+                    {activeTab === 'admins' && (
+                        <AdminsView admins={admins} currentUser={profile} />
+                    )}
+                    {activeTab === 'customer_history' && selectedCustomer && (
+                        <CustomerHistoryView customer={selectedCustomer} bookings={bookings} onBack={() => setActiveTab('customers')} />
+                    )}
+                    {activeTab === 'fleet' && (
+                        <FleetView fleet={fleet} vehicleTypes={vehicleTypes} />
+                    )}
+                    {activeTab === 'settings' && (
+                        <SettingsView settings={settings} vehicleTypes={vehicleTypes} />
+                    )}
+                    {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings') && (
+                        <div className="flex flex-col items-center justify-center h-[50vh] text-gray-400">
+                            <LucideSettings size={48} className="mb-4 opacity-20" />
+                            <p>This section is under development.</p>
+                        </div>
+                    )}
                 </div>
-             </div>
-             <button 
-                onClick={() => signout()}
-                className="w-full flex items-center gap-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
-             >
-                <LucideLogOut size={18} />
-                Sign Out
-             </button>
-          </div>
+            </main>
         </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-8">
-            <div className="flex items-center gap-4">
-                <button 
-                    onClick={toggleSidebar}
-                    className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg lg:hidden"
-                >
-                    <LucideMenu size={24} />
-                </button>
-                <h2 className="text-lg font-bold hidden sm:block">
-                    {activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                </h2>
-            </div>
-
-            <div className="flex items-center gap-4">
-                <div className="relative hidden md:block">
-                    <LucideSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input 
-                        type="text" 
-                        placeholder="Search..." 
-                        className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-black w-64"
-                    />
-                </div>
-                <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-full relative">
-                    <LucideBell size={20} />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                </button>
-            </div>
-        </header>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-            {activeTab === 'dashboard' && (
-                <DashboardView bookings={bookings} stats={stats} />
-            )}
-            {activeTab === 'bookings' && (
-                <BookingsView bookings={bookings} drivers={drivers} />
-            )}
-            {activeTab === 'drivers' && (
-                <DriversView drivers={drivers} />
-            )}
-            {activeTab === 'customers' && (
-                <CustomersView customers={customers} onViewHistory={handleViewCustomerHistory} />
-            )}
-            {activeTab === 'customer_history' && selectedCustomer && (
-                <CustomerHistoryView customer={selectedCustomer} bookings={bookings} onBack={() => setActiveTab('customers')} />
-            )}
-            {activeTab === 'fleet' && (
-                <FleetView fleet={fleet} vehicleTypes={vehicleTypes} />
-            )}
-            {activeTab === 'settings' && (
-                <SettingsView settings={settings} vehicleTypes={vehicleTypes} />
-            )}
-             {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings') && (
-                <div className="flex flex-col items-center justify-center h-[50vh] text-gray-400">
-                    <LucideSettings size={48} className="mb-4 opacity-20" />
-                    <p>This section is under development.</p>
-                </div>
-            )}
-        </div>
-      </main>
-    </div>
-  )
+    )
 }
 
 function NavItem({ icon, label, active, onClick }: any) {
     return (
-        <button 
+        <button
             onClick={onClick}
             className={`
                 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
@@ -241,33 +252,33 @@ function DashboardView({ bookings, stats }: any) {
         <div className="space-y-8">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard 
-                    label="Total Revenue" 
-                    value={`$${stats.totalRevenue.toLocaleString()}`} 
-                    change="+12.5%" 
+                <StatCard
+                    label="Total Revenue"
+                    value={`$${stats.totalRevenue.toLocaleString()}`}
+                    change="+12.5%"
                     isPositive={true}
-                    icon={<LucideDollarSign size={20} className="text-green-600" />} 
+                    icon={<LucideDollarSign size={20} className="text-green-600" />}
                 />
-                <StatCard 
-                    label="Active Bookings" 
-                    value={stats.activeBookings} 
-                    change="+4" 
+                <StatCard
+                    label="Active Bookings"
+                    value={stats.activeBookings}
+                    change="+4"
                     isPositive={true}
-                    icon={<LucideCalendar size={20} className="text-blue-600" />} 
+                    icon={<LucideCalendar size={20} className="text-blue-600" />}
                 />
-                <StatCard 
-                    label="Active Drivers" 
-                    value={stats.activeDrivers} 
-                    change="0" 
+                <StatCard
+                    label="Active Drivers"
+                    value={stats.activeDrivers}
+                    change="0"
                     isPositive={true}
-                    icon={<LucideCar size={20} className="text-black" />} 
+                    icon={<LucideCar size={20} className="text-black" />}
                 />
-                <StatCard 
-                    label="Total Customers" 
-                    value={stats.totalCustomers} 
-                    change="+2.1%" 
+                <StatCard
+                    label="Total Customers"
+                    value={stats.totalCustomers}
+                    change="+2.1%"
                     isPositive={true}
-                    icon={<LucideUsers size={20} className="text-purple-600" />} 
+                    icon={<LucideUsers size={20} className="text-purple-600" />}
                 />
             </div>
 
@@ -320,7 +331,7 @@ function DashboardView({ bookings, stats }: any) {
                     <div className="bg-black text-white rounded-xl p-6">
                         <h3 className="font-bold text-lg mb-2">Driver Applications</h3>
                         <p className="text-gray-400 text-sm mb-6">
-                            {stats.pendingDrivers > 0 
+                            {stats.pendingDrivers > 0
                                 ? `${stats.pendingDrivers} new driver(s) waiting for approval.`
                                 : "No new driver applications."
                             }
@@ -347,7 +358,7 @@ function DashboardView({ bookings, stats }: any) {
                                 </span>
                                 <span className="font-medium text-green-600">Operational</span>
                             </div>
-                             <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center justify-between text-sm">
                                 <span className="flex items-center gap-2 text-gray-600">
                                     <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                                     Email Service
@@ -413,53 +424,53 @@ function BookingsView({ bookings, drivers }: any) {
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden relative">
-             {/* Modal Overlay */}
-             {assignModalOpen && (
-                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                     <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
-                         <div className="flex justify-between items-center mb-4">
-                             <h3 className="font-bold text-lg">Assign Driver</h3>
-                             <button onClick={() => setAssignModalOpen(false)} className="p-1 hover:bg-gray-100 rounded">
-                                 <LucideX size={20} />
-                             </button>
-                         </div>
-                         <p className="text-sm text-gray-500 mb-4">
-                             Select a driver for Booking <span className="font-mono font-medium">#{selectedBooking?.id.slice(0, 8)}</span>
-                         </p>
-                         
-                         <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
-                             {availableDrivers.map((driver: any) => (
-                                 <button 
-                                     key={driver.id}
-                                     onClick={() => handleAssignDriver(driver.id)}
-                                     disabled={assigning}
-                                     className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 text-left transition-colors group"
-                                 >
-                                     <div className="flex items-center gap-3">
-                                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600 text-xs group-hover:bg-white group-hover:shadow-sm transition-all">
-                                             {driver.profiles?.full_name?.charAt(0) || 'D'}
-                                         </div>
-                                         <div>
-                                             <div className="font-medium text-sm">{driver.profiles?.full_name}</div>
-                                             <div className="text-xs text-gray-500 capitalize">{driver.status}</div>
-                                         </div>
-                                     </div>
-                                     {assigning && selectedBooking?.driver_id === driver.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>}
-                                 </button>
-                             ))}
-                             {availableDrivers.length === 0 && (
-                                 <p className="text-center text-gray-500 py-4">No available drivers found.</p>
-                             )}
-                         </div>
-                         
-                         <div className="flex justify-end">
-                             <button onClick={() => setAssignModalOpen(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
-                         </div>
-                     </div>
-                 </div>
-             )}
+            {/* Modal Overlay */}
+            {assignModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-lg">Assign Driver</h3>
+                            <button onClick={() => setAssignModalOpen(false)} className="p-1 hover:bg-gray-100 rounded">
+                                <LucideX size={20} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Select a driver for Booking <span className="font-mono font-medium">#{selectedBooking?.id.slice(0, 8)}</span>
+                        </p>
 
-             <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
+                            {availableDrivers.map((driver: any) => (
+                                <button
+                                    key={driver.id}
+                                    onClick={() => handleAssignDriver(driver.id)}
+                                    disabled={assigning}
+                                    className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 text-left transition-colors group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600 text-xs group-hover:bg-white group-hover:shadow-sm transition-all">
+                                            {driver.profiles?.full_name?.charAt(0) || 'D'}
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-sm">{driver.profiles?.full_name}</div>
+                                            <div className="text-xs text-gray-500 capitalize">{driver.status}</div>
+                                        </div>
+                                    </div>
+                                    {assigning && selectedBooking?.driver_id === driver.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>}
+                                </button>
+                            ))}
+                            {availableDrivers.length === 0 && (
+                                <p className="text-center text-gray-500 py-4">No available drivers found.</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end">
+                            <button onClick={() => setAssignModalOpen(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="font-bold text-lg">All Bookings</h3>
                 <div className="flex gap-2">
                     <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">
@@ -470,7 +481,7 @@ function BookingsView({ bookings, drivers }: any) {
                     </button>
                 </div>
             </div>
-             <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 font-medium">
                         <tr>
@@ -521,7 +532,7 @@ function BookingsView({ bookings, drivers }: any) {
                                 </td>
                                 <td className="px-6 py-4 text-gray-500">
                                     <div className="font-medium text-gray-900">{new Date(booking.pickup_time).toLocaleDateString()}</div>
-                                    <div className="text-xs">{new Date(booking.pickup_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                    <div className="text-xs">{new Date(booking.pickup_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="font-medium">{booking.vehicle_types?.name || 'Vehicle'}</div>
@@ -538,7 +549,7 @@ function BookingsView({ bookings, drivers }: any) {
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
                                         {(!booking.driver_id && (booking.status === 'pending' || booking.status === 'confirmed')) ? (
-                                            <button 
+                                            <button
                                                 onClick={() => handleAssignClick(booking)}
                                                 className="px-3 py-1 bg-black text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors"
                                             >
@@ -554,19 +565,19 @@ function BookingsView({ bookings, drivers }: any) {
                                         ) : null}
                                         <button className="p-1 hover:bg-gray-100 rounded transition-colors group relative">
                                             <LucideMoreHorizontal size={16} className="text-gray-500" />
-                                            
+
                                             {/* Dropdown Menu */}
                                             <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg hidden group-hover:block z-10">
                                                 {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                                                     <>
-                                                        <div 
+                                                        <div
                                                             onClick={() => handleCancelBooking(booking.id)}
                                                             className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 cursor-pointer flex items-center gap-2"
                                                         >
                                                             <LucideXCircle size={14} />
                                                             Cancel Booking
                                                         </div>
-                                                        <div 
+                                                        <div
                                                             onClick={() => handleCompleteBooking(booking.id)}
                                                             className="w-full text-left px-4 py-2 text-xs text-green-600 hover:bg-green-50 cursor-pointer flex items-center gap-2"
                                                         >
@@ -588,7 +599,7 @@ function BookingsView({ bookings, drivers }: any) {
                     </tbody>
                 </table>
             </div>
-             <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+            <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
                 <span className="text-sm text-gray-500">Showing {bookings?.length || 0} entries</span>
                 <div className="flex gap-2">
                     <button className="px-3 py-1 border border-gray-300 rounded text-sm bg-white disabled:opacity-50" disabled>Previous</button>
@@ -618,9 +629,16 @@ function DriversView({ drivers }: any) {
         }
     }
 
+    const handleDeleteUser = async (id: string) => {
+        if (confirm('Are you sure you want to delete this driver? This will remove their profile and login access.')) {
+            const result = await deleteUser(id)
+            if (result.error) alert(result.error)
+        }
+    }
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-             <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="font-bold text-lg">Chauffeurs</h3>
                 <div className="flex gap-2">
                     <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">
@@ -631,7 +649,7 @@ function DriversView({ drivers }: any) {
                     </button>
                 </div>
             </div>
-             <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 font-medium">
                         <tr>
@@ -694,13 +712,13 @@ function DriversView({ drivers }: any) {
                                     <div className="flex gap-2">
                                         {driver.status === 'pending_approval' && (
                                             <>
-                                                <button 
+                                                <button
                                                     onClick={() => handleApprove(driver.id)}
                                                     className="px-3 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
                                                 >
                                                     Approve
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleReject(driver.id)}
                                                     className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
                                                 >
@@ -709,11 +727,18 @@ function DriversView({ drivers }: any) {
                                             </>
                                         )}
                                         <button className="text-sm font-medium text-black hover:underline">Manage</button>
+                                        <button
+                                            onClick={() => handleDeleteUser(driver.id)}
+                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                            title="Delete Driver"
+                                        >
+                                            <LucideTrash2 size={16} />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
-                         {(!drivers || drivers.length === 0) && (
+                        {(!drivers || drivers.length === 0) && (
                             <tr>
                                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">No drivers found.</td>
                             </tr>
@@ -726,9 +751,16 @@ function DriversView({ drivers }: any) {
 }
 
 function CustomersView({ customers, onViewHistory }: any) {
+    const handleDeleteUser = async (id: string) => {
+        if (confirm('Are you sure you want to delete this customer? This will remove their profile and login access.')) {
+            const result = await deleteUser(id)
+            if (result.error) alert(result.error)
+        }
+    }
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-             <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="font-bold text-lg">Customers</h3>
                 <div className="flex gap-2">
                     <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">
@@ -739,7 +771,7 @@ function CustomersView({ customers, onViewHistory }: any) {
                     </button>
                 </div>
             </div>
-             <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 font-medium">
                         <tr>
@@ -783,16 +815,23 @@ function CustomersView({ customers, onViewHistory }: any) {
                                     {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <button 
+                                    <button
                                         onClick={() => onViewHistory(customer)}
                                         className="text-sm font-medium text-black hover:underline"
                                     >
                                         View History
                                     </button>
+                                    <button
+                                        onClick={() => handleDeleteUser(customer.id)}
+                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                        title="Delete Customer"
+                                    >
+                                        <LucideTrash2 size={16} />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
-                         {(!customers || customers.length === 0) && (
+                        {(!customers || customers.length === 0) && (
                             <tr>
                                 <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No customers found.</td>
                             </tr>
@@ -810,13 +849,13 @@ function CustomerHistoryView({ customer, bookings, onBack }: any) {
 
     return (
         <div className="space-y-6">
-            <button 
+            <button
                 onClick={onBack}
                 className="flex items-center gap-2 text-sm text-gray-500 hover:text-black transition-colors"
             >
                 <LucideArrowLeft size={16} /> Back to Customers
             </button>
-            
+
             <div className="bg-white p-6 rounded-xl border border-gray-200">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
@@ -840,7 +879,7 @@ function CustomerHistoryView({ customer, bookings, onBack }: any) {
                     <div className="text-right">
                         <div className="text-sm text-gray-500">Total Spend</div>
                         <div className="text-2xl font-bold">
-                             ${customerBookings.reduce((acc: number, b: any) => acc + (b.total_price_calculated || 0), 0).toFixed(2)}
+                            ${customerBookings.reduce((acc: number, b: any) => acc + (b.total_price_calculated || 0), 0).toFixed(2)}
                         </div>
                     </div>
                 </div>
@@ -894,6 +933,142 @@ function CustomerHistoryView({ customer, bookings, onBack }: any) {
     )
 }
 
+function AdminsView({ admins, currentUser }: any) {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [formData, setFormData] = useState({
+        fullName: '',
+        email: '',
+        password: ''
+    })
+
+    const handleAddAdmin = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsSubmitting(true)
+        const result = await addAdmin(formData)
+        setIsSubmitting(false)
+        if (result.success) {
+            setIsAddModalOpen(false)
+            setFormData({ fullName: '', email: '', password: '' })
+        } else {
+            alert(result.error || 'Failed to add admin')
+        }
+    }
+
+    const handleDeleteAdmin = async (userId: string) => {
+        if (userId === currentUser.id) {
+            alert("You cannot delete your own account.")
+            return
+        }
+        if (confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
+            const result = await deleteUser(userId)
+            if (result.error) {
+                alert(result.error)
+            }
+        }
+    }
+
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h3 className="font-bold text-lg">Administrators</h3>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                    <LucidePlus size={16} /> Add Admin
+                </button>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium">
+                        <tr>
+                            <th className="px-6 py-3">Name</th>
+                            <th className="px-6 py-3">Email</th>
+                            <th className="px-6 py-3">Joined</th>
+                            <th className="px-6 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {admins.map((admin: any) => (
+                            <tr key={admin.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 font-medium">{admin.full_name}</td>
+                                <td className="px-6 py-4 text-gray-500">{admin.email}</td>
+                                <td className="px-6 py-4 text-gray-500">
+                                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : 'N/A'}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    {admin.id !== currentUser.id && (
+                                        <button
+                                            onClick={() => handleDeleteAdmin(admin.id)}
+                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                            title="Delete Admin"
+                                        >
+                                            <LucideTrash2 size={16} />
+                                        </button>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Add Admin Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="text-xl font-bold">Add New Admin</h3>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-black transition-colors">
+                                <LucideX size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddAdmin} className="p-6 space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Full Name</label>
+                                <input
+                                    type="text" required
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                    value={formData.fullName}
+                                    onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Email Address</label>
+                                <input
+                                    type="email" required
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                    value={formData.email}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Password</label>
+                                <input
+                                    type="password" required
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                />
+                            </div>
+                            <div className="pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                >
+                                    {isSubmitting ? 'Creating...' : 'Create Admin Account'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
 function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] }) {
     const router = useRouter()
     const [activeSubTab, setActiveSubTab] = useState<'vehicles' | 'types'>('vehicles')
@@ -902,7 +1077,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
     const [isEditTypeModalOpen, setIsEditTypeModalOpen] = useState(false)
     const [editingType, setEditingType] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    
+
     // Vehicle Form
     const [formData, setFormData] = useState({
         make: '',
@@ -1051,13 +1226,13 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
         <div className="space-y-6">
             {/* Sub-tabs */}
             <div className="flex border-b border-gray-200">
-                <button 
+                <button
                     onClick={() => setActiveSubTab('vehicles')}
                     className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeSubTab === 'vehicles' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}
                 >
                     Vehicles
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveSubTab('types')}
                     className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeSubTab === 'types' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-black'}`}
                 >
@@ -1073,7 +1248,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">
                                 <LucideFilter size={16} /> Filter
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="flex items-center gap-2 px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
                             >
@@ -1112,16 +1287,14 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                             {vehicle.year}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                                                vehicle.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                                vehicle.status === 'maintenance' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                                                'bg-gray-50 text-gray-700 border-gray-200'
-                                            }`}>
-                                                <div className={`w-1.5 h-1.5 rounded-full ${
-                                                    vehicle.status === 'active' ? 'bg-green-500' : 
-                                                    vehicle.status === 'maintenance' ? 'bg-yellow-500' : 
-                                                    'bg-gray-500'
-                                                }`}></div>
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${vehicle.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                vehicle.status === 'maintenance' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                    'bg-gray-50 text-gray-700 border-gray-200'
+                                                }`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${vehicle.status === 'active' ? 'bg-green-500' :
+                                                    vehicle.status === 'maintenance' ? 'bg-yellow-500' :
+                                                        'bg-gray-500'
+                                                    }`}></div>
                                                 {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                                             </span>
                                         </td>
@@ -1130,7 +1303,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                                 <button className="p-1 text-gray-400 hover:text-black transition-colors">
                                                     <LucideEdit2 size={16} />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDeleteVehicle(vehicle.id)}
                                                     className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                                                 >
@@ -1154,7 +1327,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                     <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                         <h3 className="font-bold text-lg">Vehicle Types</h3>
                         <div className="flex gap-2">
-                            <button 
+                            <button
                                 onClick={() => setIsAddTypeModalOpen(true)}
                                 className="flex items-center gap-2 px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
                             >
@@ -1199,13 +1372,13 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => handleEditType(type)}
                                                     className="p-1 text-gray-400 hover:text-black transition-colors"
                                                 >
                                                     <LucideEdit2 size={16} />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDeleteType(type.id)}
                                                     className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                                                 >
@@ -1240,22 +1413,22 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Make</label>
-                                    <input 
+                                    <input
                                         type="text" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="e.g. Mercedes-Benz"
                                         value={formData.make}
-                                        onChange={e => setFormData({...formData, make: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, make: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Model</label>
-                                    <input 
+                                    <input
                                         type="text" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="e.g. S-Class"
                                         value={formData.model}
-                                        onChange={e => setFormData({...formData, model: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, model: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -1263,43 +1436,43 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Year</label>
-                                    <input 
+                                    <input
                                         type="number" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={formData.year}
-                                        onChange={e => setFormData({...formData, year: parseInt(e.target.value)})}
+                                        onChange={e => setFormData({ ...formData, year: parseInt(e.target.value) })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Color</label>
-                                    <input 
+                                    <input
                                         type="text" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="e.g. Black"
                                         value={formData.color}
-                                        onChange={e => setFormData({...formData, color: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, color: e.target.value })}
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">License Plate</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all font-mono"
                                     placeholder="e.g. ABC-1234"
                                     value={formData.license_plate}
-                                    onChange={e => setFormData({...formData, license_plate: e.target.value})}
+                                    onChange={e => setFormData({ ...formData, license_plate: e.target.value })}
                                 />
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Vehicle Type</label>
                                 <div className="relative">
-                                    <select 
+                                    <select
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all appearance-none"
                                         value={formData.vehicle_type_id}
-                                        onChange={e => setFormData({...formData, vehicle_type_id: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, vehicle_type_id: e.target.value })}
                                     >
                                         {vehicleTypes.length > 0 ? (
                                             vehicleTypes.map(type => (
@@ -1316,7 +1489,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             </div>
 
                             <div className="pt-4">
-                                <button 
+                                <button
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="w-full py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
@@ -1342,43 +1515,43 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                         <form onSubmit={handleAddVehicleType} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Type Name</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     placeholder="e.g. Business Class"
                                     value={typeFormData.name}
-                                    onChange={e => setTypeFormData({...typeFormData, name: e.target.value})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, name: e.target.value })}
                                 />
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
-                                <textarea 
+                                <textarea
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     placeholder="e.g. Mercedes-Benz E-Class or similar"
                                     rows={2}
                                     value={typeFormData.description}
-                                    onChange={e => setTypeFormData({...typeFormData, description: e.target.value})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, description: e.target.value })}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Passengers</label>
-                                    <input 
+                                    <input
                                         type="number" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.capacity_passengers}
-                                        onChange={e => setTypeFormData({...typeFormData, capacity_passengers: parseInt(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, capacity_passengers: parseInt(e.target.value) })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Luggage Bags</label>
-                                    <input 
+                                    <input
                                         type="number" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.capacity_luggage}
-                                        onChange={e => setTypeFormData({...typeFormData, capacity_luggage: parseInt(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, capacity_luggage: parseInt(e.target.value) })}
                                     />
                                 </div>
                             </div>
@@ -1386,20 +1559,20 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Base Fare ($)</label>
-                                    <input 
+                                    <input
                                         type="number" required step="0.01"
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.base_fare_usd}
-                                        onChange={e => setTypeFormData({...typeFormData, base_fare_usd: parseFloat(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, base_fare_usd: parseFloat(e.target.value) })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Rate ($)</label>
-                                    <input 
+                                    <input
                                         type="number" required step="0.01"
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.price_per_distance_usd}
-                                        onChange={e => setTypeFormData({...typeFormData, price_per_distance_usd: parseFloat(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, price_per_distance_usd: parseFloat(e.target.value) })}
                                     />
                                 </div>
                             </div>
@@ -1407,10 +1580,10 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Unit</label>
-                                    <select 
+                                    <select
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.distance_unit}
-                                        onChange={e => setTypeFormData({...typeFormData, distance_unit: e.target.value as 'mile' | 'km'})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, distance_unit: e.target.value as 'mile' | 'km' })}
                                     >
                                         <option value="km">Per Kilometer</option>
                                         <option value="mile">Per Mile</option>
@@ -1418,38 +1591,38 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">$/Hour</label>
-                                    <input 
+                                    <input
                                         type="number" required step="0.01"
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.price_per_hour_usd}
-                                        onChange={e => setTypeFormData({...typeFormData, price_per_hour_usd: parseFloat(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, price_per_hour_usd: parseFloat(e.target.value) })}
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Min. Hours Booking</label>
-                                <input 
+                                <input
                                     type="number" required
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     value={typeFormData.min_hours_booking}
-                                    onChange={e => setTypeFormData({...typeFormData, min_hours_booking: parseInt(e.target.value)})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, min_hours_booking: parseInt(e.target.value) })}
                                 />
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Image URL (optional)</label>
-                                <input 
+                                <input
                                     type="url"
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     placeholder="https://images.unsplash.com/..."
                                     value={typeFormData.image_url}
-                                    onChange={e => setTypeFormData({...typeFormData, image_url: e.target.value})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, image_url: e.target.value })}
                                 />
                             </div>
 
                             <div className="pt-4">
-                                <button 
+                                <button
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="w-full py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
@@ -1475,43 +1648,43 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                         <form onSubmit={handleUpdateVehicleType} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Type Name</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     placeholder="e.g. Black SUV"
                                     value={typeFormData.name}
-                                    onChange={e => setTypeFormData({...typeFormData, name: e.target.value})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, name: e.target.value })}
                                 />
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
-                                <textarea 
+                                <textarea
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     placeholder="Enter type description..."
                                     rows={2}
                                     value={typeFormData.description}
-                                    onChange={e => setTypeFormData({...typeFormData, description: e.target.value})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, description: e.target.value })}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Passengers</label>
-                                    <input 
+                                    <input
                                         type="number" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.capacity_passengers}
-                                        onChange={e => setTypeFormData({...typeFormData, capacity_passengers: parseInt(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, capacity_passengers: parseInt(e.target.value) })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Luggage</label>
-                                    <input 
+                                    <input
                                         type="number" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.capacity_luggage}
-                                        onChange={e => setTypeFormData({...typeFormData, capacity_luggage: parseInt(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, capacity_luggage: parseInt(e.target.value) })}
                                     />
                                 </div>
                             </div>
@@ -1519,20 +1692,20 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Base Fare ($)</label>
-                                    <input 
+                                    <input
                                         type="number" required step="0.01"
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.base_fare_usd}
-                                        onChange={e => setTypeFormData({...typeFormData, base_fare_usd: parseFloat(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, base_fare_usd: parseFloat(e.target.value) })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Rate ($)</label>
-                                    <input 
+                                    <input
                                         type="number" required step="0.01"
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.price_per_distance_usd}
-                                        onChange={e => setTypeFormData({...typeFormData, price_per_distance_usd: parseFloat(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, price_per_distance_usd: parseFloat(e.target.value) })}
                                     />
                                 </div>
                             </div>
@@ -1540,10 +1713,10 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Unit</label>
-                                    <select 
+                                    <select
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.distance_unit}
-                                        onChange={e => setTypeFormData({...typeFormData, distance_unit: e.target.value as 'mile' | 'km'})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, distance_unit: e.target.value as 'mile' | 'km' })}
                                     >
                                         <option value="km">Per Kilometer</option>
                                         <option value="mile">Per Mile</option>
@@ -1551,38 +1724,38 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">$/Hour</label>
-                                    <input 
+                                    <input
                                         type="number" required step="0.01"
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         value={typeFormData.price_per_hour_usd}
-                                        onChange={e => setTypeFormData({...typeFormData, price_per_hour_usd: parseFloat(e.target.value)})}
+                                        onChange={e => setTypeFormData({ ...typeFormData, price_per_hour_usd: parseFloat(e.target.value) })}
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Min. Hours Booking</label>
-                                <input 
+                                <input
                                     type="number" required
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     value={typeFormData.min_hours_booking}
-                                    onChange={e => setTypeFormData({...typeFormData, min_hours_booking: parseInt(e.target.value)})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, min_hours_booking: parseInt(e.target.value) })}
                                 />
                             </div>
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Image URL (optional)</label>
-                                <input 
+                                <input
                                     type="url"
                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                     placeholder="https://images.unsplash.com/..."
                                     value={typeFormData.image_url}
-                                    onChange={e => setTypeFormData({...typeFormData, image_url: e.target.value})}
+                                    onChange={e => setTypeFormData({ ...typeFormData, image_url: e.target.value })}
                                 />
                             </div>
 
                             <div className="pt-4">
-                                <button 
+                                <button
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="w-full py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
@@ -1606,7 +1779,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
     const [isTestingSmtp, setIsTestingSmtp] = useState(false)
     const [testEmail, setTestEmail] = useState('')
     const [formData, setFormData] = useState<any>({})
-    
+
     // SMTP Settings State
     const [smtpSettings, setSmtpSettings] = useState(settings?.smtp || {
         host: '',
@@ -1671,7 +1844,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
         e.preventDefault()
         setIsLoading(true)
         let result: any
-        
+
         try {
             if (activeSection === 'pricing') {
                 result = await addPricingRule({
@@ -1715,10 +1888,10 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this?')) return
-        
+
         setIsLoading(true)
         let result: any
-        
+
         try {
             if (activeSection === 'pricing') {
                 result = await deletePricingRule(id)
@@ -1744,9 +1917,9 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
     const openAddModal = () => {
         setFormData(
             activeSection === 'pricing' ? { multiplier: '1.0', is_active: true } :
-            activeSection === 'rates' ? { vehicle_type_id: vehicleTypes[0]?.id || '', rate_per_hour: '0', min_hours: '2' } :
-            activeSection === 'airport' ? { airport_code: '', fee_type: 'pickup', amount: '0' } :
-            { start_time: '00:00', end_time: '23:59', multiplier: '1.0', day_of_week: '' }
+                activeSection === 'rates' ? { vehicle_type_id: vehicleTypes[0]?.id || '', rate_per_hour: '0', min_hours: '2' } :
+                    activeSection === 'airport' ? { airport_code: '', fee_type: 'pickup', amount: '0' } :
+                        { start_time: '00:00', end_time: '23:59', multiplier: '1.0', day_of_week: '' }
         )
         setIsAddModalOpen(true)
     }
@@ -1761,8 +1934,8 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                             onClick={() => setActiveSection(tab.id)}
                             className={`
                                 flex-1 py-2 text-sm font-medium rounded-lg transition-all
-                                ${activeSection === tab.id 
-                                    ? 'bg-black text-white shadow-sm' 
+                                ${activeSection === tab.id
+                                    ? 'bg-black text-white shadow-sm'
                                     : 'text-gray-500 hover:text-black hover:bg-gray-50'
                                 }
                             `}
@@ -1797,14 +1970,13 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 text-gray-500">{rule.description || '-'}</td>
                                         <td className="px-6 py-4 font-mono">{rule.multiplier}x</td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                                rule.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                                            }`}>
+                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${rule.is_active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                                                }`}>
                                                 {rule.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(rule.id)}
                                                 className="text-red-600 hover:text-red-800 transition-colors"
                                             >
@@ -1823,7 +1995,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
             )}
 
             {activeSection === 'rates' && (
-                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                         <h3 className="font-bold text-lg">Hourly Service Rates</h3>
                         <button onClick={openAddModal} className="text-sm font-medium text-black hover:underline">+ Add Rate</button>
@@ -1845,7 +2017,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4">${rate.rate_per_hour}</td>
                                         <td className="px-6 py-4">{rate.min_hours}h</td>
                                         <td className="px-6 py-4 text-right">
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(rate.id)}
                                                 className="text-red-600 hover:text-red-800 transition-colors"
                                             >
@@ -1864,7 +2036,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
             )}
 
             {activeSection === 'airport' && (
-                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                         <h3 className="font-bold text-lg">Airport Fees</h3>
                         <button onClick={openAddModal} className="text-sm font-medium text-black hover:underline">+ Add Fee</button>
@@ -1886,7 +2058,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 capitalize">{fee.fee_type}</td>
                                         <td className="px-6 py-4">${fee.amount}</td>
                                         <td className="px-6 py-4 text-right">
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(fee.id)}
                                                 className="text-red-600 hover:text-red-800 transition-colors"
                                             >
@@ -1905,7 +2077,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
             )}
 
             {activeSection === 'time' && (
-                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                         <h3 className="font-bold text-lg">Time-Based Multipliers</h3>
                         <button onClick={openAddModal} className="text-sm font-medium text-black hover:underline">+ Add Rule</button>
@@ -1928,11 +2100,11 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 font-mono">{tm.end_time}</td>
                                         <td className="px-6 py-4 font-bold">{tm.multiplier}x</td>
                                         <td className="px-6 py-4">
-                                            {tm.day_of_week === null ? 'Every Day' : 
-                                             ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][tm.day_of_week]}
+                                            {tm.day_of_week === null ? 'Every Day' :
+                                                ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][tm.day_of_week]}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(tm.id)}
                                                 className="text-red-600 hover:text-red-800 transition-colors"
                                             >
@@ -1968,22 +2140,20 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <button
                                     onClick={() => handleSystemDistanceUnitChange('km')}
                                     disabled={isLoading}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                                        systemDistanceUnit === 'km' 
-                                            ? 'bg-black text-white shadow-sm' 
-                                            : 'text-gray-500 hover:bg-gray-50'
-                                    }`}
+                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${systemDistanceUnit === 'km'
+                                        ? 'bg-black text-white shadow-sm'
+                                        : 'text-gray-500 hover:bg-gray-50'
+                                        }`}
                                 >
                                     Kilometers (km)
                                 </button>
                                 <button
                                     onClick={() => handleSystemDistanceUnitChange('mile')}
                                     disabled={isLoading}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                                        systemDistanceUnit === 'mile' 
-                                            ? 'bg-black text-white shadow-sm' 
-                                            : 'text-gray-500 hover:bg-gray-50'
-                                    }`}
+                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${systemDistanceUnit === 'mile'
+                                        ? 'bg-black text-white shadow-sm'
+                                        : 'text-gray-500 hover:bg-gray-50'
+                                        }`}
                                 >
                                     Miles (mi)
                                 </button>
@@ -2005,33 +2175,33 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Server Settings</h4>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">SMTP Host</label>
-                                    <input 
+                                    <input
                                         type="text" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="e.g. smtp.gmail.com"
                                         value={smtpSettings.host}
-                                        onChange={e => setSmtpSettings({...smtpSettings, host: e.target.value})}
+                                        onChange={e => setSmtpSettings({ ...smtpSettings, host: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-500 uppercase">Port</label>
-                                        <input 
+                                        <input
                                             type="number" required
                                             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                             placeholder="587"
                                             value={smtpSettings.port}
-                                            onChange={e => setSmtpSettings({...smtpSettings, port: parseInt(e.target.value)})}
+                                            onChange={e => setSmtpSettings({ ...smtpSettings, port: parseInt(e.target.value) })}
                                         />
                                     </div>
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-gray-500 uppercase">Secure (SSL/TLS)</label>
                                         <div className="flex items-center h-10">
-                                            <input 
+                                            <input
                                                 type="checkbox"
                                                 className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
                                                 checked={smtpSettings.secure}
-                                                onChange={e => setSmtpSettings({...smtpSettings, secure: e.target.checked})}
+                                                onChange={e => setSmtpSettings({ ...smtpSettings, secure: e.target.checked })}
                                             />
                                             <span className="ml-2 text-sm text-gray-600">Use Secure Connection</span>
                                         </div>
@@ -2043,22 +2213,22 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Authentication</h4>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Username / Email</label>
-                                    <input 
+                                    <input
                                         type="text" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="your-email@domain.com"
                                         value={smtpSettings.user}
-                                        onChange={e => setSmtpSettings({...smtpSettings, user: e.target.value})}
+                                        onChange={e => setSmtpSettings({ ...smtpSettings, user: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Password / App Password</label>
-                                    <input 
+                                    <input
                                         type="password" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="••••••••••••"
                                         value={smtpSettings.pass}
-                                        onChange={e => setSmtpSettings({...smtpSettings, pass: e.target.value})}
+                                        onChange={e => setSmtpSettings({ ...smtpSettings, pass: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -2069,29 +2239,29 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">From Email</label>
-                                    <input 
+                                    <input
                                         type="email" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="noreply@rihlalimo.com"
                                         value={smtpSettings.from_email}
-                                        onChange={e => setSmtpSettings({...smtpSettings, from_email: e.target.value})}
+                                        onChange={e => setSmtpSettings({ ...smtpSettings, from_email: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">From Name</label>
-                                    <input 
+                                    <input
                                         type="text" required
                                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                         placeholder="Rihla Limo"
                                         value={smtpSettings.from_name}
-                                        onChange={e => setSmtpSettings({...smtpSettings, from_name: e.target.value})}
+                                        onChange={e => setSmtpSettings({ ...smtpSettings, from_name: e.target.value })}
                                     />
                                 </div>
                             </div>
                         </div>
 
                         <div className="pt-4 flex justify-end">
-                            <button 
+                            <button
                                 type="submit"
                                 disabled={isLoading}
                                 className="px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
@@ -2104,14 +2274,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                     <div className="p-6 bg-gray-50 border-t border-gray-200">
                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Test Configuration</h4>
                         <div className="flex gap-4 max-w-md">
-                            <input 
+                            <input
                                 type="email"
                                 className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
                                 placeholder="test@example.com"
                                 value={testEmail}
                                 onChange={e => setTestEmail(e.target.value)}
                             />
-                            <button 
+                            <button
                                 onClick={handleTestSmtp}
                                 disabled={isTestingSmtp}
                                 className="px-6 py-2 border border-black rounded-lg text-sm font-bold hover:bg-black hover:text-white transition-all disabled:opacity-50"
@@ -2139,31 +2309,31 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="text" 
-                                            value={formData.name || ''} 
-                                            onChange={e => setFormData({...formData, name: e.target.value})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            type="text"
+                                            value={formData.name || ''}
+                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                             placeholder="e.g. Holiday Surge"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Multiplier</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="number" 
+                                            type="number"
                                             step="0.01"
-                                            value={formData.multiplier || '1.0'} 
-                                            onChange={e => setFormData({...formData, multiplier: e.target.value})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            value={formData.multiplier || '1.0'}
+                                            onChange={e => setFormData({ ...formData, multiplier: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                        <select 
-                                            value={formData.is_active} 
-                                            onChange={e => setFormData({...formData, is_active: e.target.value === 'true'})}
+                                        <select
+                                            value={formData.is_active}
+                                            onChange={e => setFormData({ ...formData, is_active: e.target.value === 'true' })}
                                             className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         >
                                             <option value="true">Active</option>
@@ -2177,10 +2347,10 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
-                                        <select 
+                                        <select
                                             required
-                                            value={formData.vehicle_type_id || ''} 
-                                            onChange={e => setFormData({...formData, vehicle_type_id: e.target.value})}
+                                            value={formData.vehicle_type_id || ''}
+                                            onChange={e => setFormData({ ...formData, vehicle_type_id: e.target.value })}
                                             className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         >
                                             <option value="">Select Type</option>
@@ -2191,22 +2361,22 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Rate per Hour ($)</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="number" 
-                                            value={formData.rate_per_hour || '0'} 
-                                            onChange={e => setFormData({...formData, rate_per_hour: e.target.value})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            type="number"
+                                            value={formData.rate_per_hour || '0'}
+                                            onChange={e => setFormData({ ...formData, rate_per_hour: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Min. Hours</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="number" 
-                                            value={formData.min_hours || '2'} 
-                                            onChange={e => setFormData({...formData, min_hours: e.target.value})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            type="number"
+                                            value={formData.min_hours || '2'}
+                                            onChange={e => setFormData({ ...formData, min_hours: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         />
                                     </div>
                                 </>
@@ -2216,21 +2386,21 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Airport Code</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="text" 
+                                            type="text"
                                             maxLength={3}
-                                            value={formData.airport_code || ''} 
-                                            onChange={e => setFormData({...formData, airport_code: e.target.value.toUpperCase()})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            value={formData.airport_code || ''}
+                                            onChange={e => setFormData({ ...formData, airport_code: e.target.value.toUpperCase() })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                             placeholder="e.g. LAX"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Fee Type</label>
-                                        <select 
-                                            value={formData.fee_type} 
-                                            onChange={e => setFormData({...formData, fee_type: e.target.value})}
+                                        <select
+                                            value={formData.fee_type}
+                                            onChange={e => setFormData({ ...formData, fee_type: e.target.value })}
                                             className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         >
                                             <option value="pickup">Pickup</option>
@@ -2240,12 +2410,12 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="number" 
-                                            value={formData.amount || '0'} 
-                                            onChange={e => setFormData({...formData, amount: e.target.value})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            type="number"
+                                            value={formData.amount || '0'}
+                                            onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         />
                                     </div>
                                 </>
@@ -2256,41 +2426,41 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                            <input 
+                                            <input
                                                 required
-                                                type="time" 
-                                                value={formData.start_time || '00:00'} 
-                                                onChange={e => setFormData({...formData, start_time: e.target.value})}
-                                                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                                type="time"
+                                                value={formData.start_time || '00:00'}
+                                                onChange={e => setFormData({ ...formData, start_time: e.target.value })}
+                                                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                            <input 
+                                            <input
                                                 required
-                                                type="time" 
-                                                value={formData.end_time || '23:59'} 
-                                                onChange={e => setFormData({...formData, end_time: e.target.value})}
-                                                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                                type="time"
+                                                value={formData.end_time || '23:59'}
+                                                onChange={e => setFormData({ ...formData, end_time: e.target.value })}
+                                                className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                             />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Multiplier</label>
-                                        <input 
+                                        <input
                                             required
-                                            type="number" 
+                                            type="number"
                                             step="0.01"
-                                            value={formData.multiplier || '1.0'} 
-                                            onChange={e => setFormData({...formData, multiplier: e.target.value})}
-                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black" 
+                                            value={formData.multiplier || '1.0'}
+                                            onChange={e => setFormData({ ...formData, multiplier: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Day of Week</label>
-                                        <select 
-                                            value={formData.day_of_week} 
-                                            onChange={e => setFormData({...formData, day_of_week: e.target.value})}
+                                        <select
+                                            value={formData.day_of_week}
+                                            onChange={e => setFormData({ ...formData, day_of_week: e.target.value })}
                                             className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
                                         >
                                             <option value="">Every Day</option>
@@ -2307,14 +2477,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                             )}
 
                             <div className="pt-4 flex gap-3">
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setIsAddModalOpen(false)}
                                     className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     type="submit"
                                     disabled={isLoading}
                                     className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"

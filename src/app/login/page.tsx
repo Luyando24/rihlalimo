@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { login, signup, resetPasswordAction } from './actions'
+import { login, signup, resetPasswordAction, resendVerificationAction } from './actions'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -10,12 +10,15 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isUnconfirmed, setIsUnconfirmed] = useState(false)
+  const [resending, setResending] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
     setMessage(null)
-    
+    setIsUnconfirmed(false)
+
     let result: any
     if (isForgotPassword) {
       result = await resetPasswordAction(formData)
@@ -23,9 +26,12 @@ export default function LoginPage() {
       const action = isLogin ? login : signup
       result = await action(formData)
     }
-    
+
     if (result?.error) {
       setError(result.error)
+      if (result.unconfirmed) {
+        setIsUnconfirmed(true)
+      }
       setLoading(false)
     } else if (result?.message) {
       setMessage(result.message)
@@ -36,14 +42,39 @@ export default function LoginPage() {
     }
   }
 
+  async function handleResend(e: React.MouseEvent) {
+    e.preventDefault()
+    const email = (document.getElementsByName('email')[0] as HTMLInputElement)?.value
+    if (!email) {
+      setError('Please enter your email address first.')
+      return
+    }
+
+    setResending(true)
+    setError(null)
+    setMessage(null)
+
+    const formData = new FormData()
+    formData.append('email', email)
+
+    const result = await resendVerificationAction(formData)
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      setMessage(result.message || 'Verification email resent!')
+    }
+    setResending(false)
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-white text-black font-sans">
-       {/* Simplified Header */}
-       <header className="bg-black text-white py-4 px-6 lg:px-16 flex justify-between items-center">
-          <Link href="/" className="text-xl font-normal tracking-tight">
-            RIHLA LIMO
-          </Link>
-       </header>
+      {/* Simplified Header */}
+      <header className="bg-black text-white py-4 px-6 lg:px-16 flex justify-between items-center">
+        <Link href="/" className="text-xl font-normal tracking-tight">
+          RIHLA LIMO
+        </Link>
+      </header>
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
@@ -53,25 +84,25 @@ export default function LoginPage() {
 
           <form action={handleSubmit} className="space-y-4">
             {!isLogin && !isForgotPassword && (
-               <input
-                 name="fullName"
-                 type="text"
-                 required
-                 className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                 placeholder="Full Name"
-               />
+              <input
+                name="fullName"
+                type="text"
+                required
+                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                placeholder="Full Name"
+              />
             )}
-            
+
             {!isLogin && !isForgotPassword && (
-               <input
-                 name="phone"
-                 type="tel"
-                 required
-                 className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                 placeholder="Phone Number"
-               />
+              <input
+                name="phone"
+                type="tel"
+                required
+                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                placeholder="Phone Number"
+              />
             )}
-            
+
             <input
               name="email"
               type="email"
@@ -106,19 +137,48 @@ export default function LoginPage() {
               </div>
             )}
 
-            {error && (
+            {isUnconfirmed ? (
+              <div className="p-5 bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-xl space-y-3 shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 mt-0.5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="font-bold text-amber-900 mb-1">Verify your email</p>
+                    <p className="text-amber-800 leading-relaxed">Please check your inbox to confirm your account before logging in.</p>
+                  </div>
+                </div>
+                <div className="pt-2 pl-8">
+                  <button
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="text-amber-700 font-bold underline hover:text-amber-900 focus:outline-none transition-colors disabled:opacity-50 flex items-center uppercase text-[11px] tracking-widest"
+                  >
+                    {resending ? (
+                      <span className="flex items-center italic normal-case tracking-normal">
+                        <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-amber-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Resending...
+                      </span>
+                    ) : 'Resend Verification Email'}
+                  </button>
+                </div>
+              </div>
+            ) : error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                 </svg>
-                 {error}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {error}
               </div>
             )}
-            
+
             {message && (
               <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 {message}
               </div>
@@ -130,15 +190,15 @@ export default function LoginPage() {
               className="w-full py-3 px-4 bg-black hover:bg-gray-800 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg flex justify-center items-center mt-6"
             >
               {loading ? (
-                  <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                  </span>
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
               ) : (
-                  isForgotPassword ? 'Send Reset Link' : (isLogin ? 'Log in' : 'Sign up')
+                isForgotPassword ? 'Send Reset Link' : (isLogin ? 'Log in' : 'Sign up')
               )}
             </button>
 
@@ -151,7 +211,7 @@ export default function LoginPage() {
                 .
               </p>
             )}
-            
+
             {isForgotPassword && (
               <div className="mt-4 text-center">
                 <button
@@ -172,17 +232,17 @@ export default function LoginPage() {
           {!isForgotPassword && (
             <div className="mt-8 text-left">
               <p className="text-gray-600">
-                  {isLogin ? "New to Rihla?" : "Already use Rihla?"}{' '}
-                  <button
-                      onClick={() => {
-                          setIsLogin(!isLogin)
-                          setError(null)
-                          setMessage(null)
-                      }}
-                      className="text-black font-medium underline hover:text-gray-700 decoration-1 underline-offset-4"
-                  >
-                      {isLogin ? 'Sign up' : 'Log in'}
-                  </button>
+                {isLogin ? "New to Rihla?" : "Already use Rihla?"}{' '}
+                <button
+                  onClick={() => {
+                    setIsLogin(!isLogin)
+                    setError(null)
+                    setMessage(null)
+                  }}
+                  className="text-black font-medium underline hover:text-gray-700 decoration-1 underline-offset-4"
+                >
+                  {isLogin ? 'Sign up' : 'Log in'}
+                </button>
               </p>
             </div>
           )}

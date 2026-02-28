@@ -14,14 +14,14 @@ export async function driverSignup(formData: FormData): Promise<{ error?: string
   const fullName = formData.get('fullName') as string
   const phone = formData.get('phone') as string
 
-  // 1. Sign up the user (sends confirmation email if enabled in Supabase)
-  // Sign up with role = 'driver'
+  // 1. Sign up the user (this reserves the email)
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         full_name: fullName,
+        phone: phone,
         role: 'driver'
       }
     }
@@ -34,21 +34,37 @@ export async function driverSignup(formData: FormData): Promise<{ error?: string
   // 2. Handle successful signup
   if (signUpData.user) {
     // Update profile with phone number and role (bypassing RLS with Admin client)
-    const { error: updateError } = await adminAuth.updateUserById(signUpData.user.id, {
-      user_metadata: { phone: phone, role: 'driver' } // Ensuring metadata is there
-    })
-
-    // The trigger sets role to 'customer' by default, so we MUST override it to 'driver' here
     const adminClient = createAdminClient()
     await adminClient.from('profiles').update({ phone: phone, role: 'driver' }).eq('id', signUpData.user.id)
 
-    // If confirmation is required, session will be null
-    if (!signUpData.session) {
-      return { success: true, message: 'Signup successful! Please check your email to verify your driver account.' }
-    } else {
-      revalidatePath('/', 'layout')
-      redirect('/drive/onboarding')
+    // 3. Generate verification link and send via SMTP
+    const { data: linkData, error: linkError } = await adminAuth.generateLink({
+      type: 'signup',
+      email,
+      password,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/drive/onboarding`
+      }
+    })
+
+    if (linkError) {
+      console.error('Error generating verification link:', linkError)
+      return { success: true, message: 'Driver account created! We had trouble sending the verification email. Please try logging in to resend it.' }
     }
+
+    const { getVerificationEmailTemplate } = await import('@/utils/emailTemplates')
+    const { sendEmail } = await import('@/utils/email')
+
+    const verificationUrl = linkData.properties.action_link
+    const html = getVerificationEmailTemplate(fullName, verificationUrl)
+
+    await sendEmail({
+      to: email,
+      subject: 'Verify Your Rihla Limo Driver Account',
+      html
+    })
+
+    return { success: true, message: 'Signup successful! Please check your email to verify your driver account.' }
   }
 
   return { error: 'Something went wrong during driver registration.' }

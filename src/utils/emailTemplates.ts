@@ -63,17 +63,28 @@ export function getEmailTemplate(title: string, content: string, actionUrl?: str
   `.trim();
 }
 
+export function getVerificationEmailTemplate(name: string, verificationUrl: string) {
+  const title = "Verify Your Account";
+  const content = `
+    <p>Hello ${name},</p>
+    <p>Thank you for choosing <strong>Rihla Limo</strong>. We're excited to have you on board!</p>
+    <p>To complete your registration and start booking your premium chauffeur service, please verify your email address by clicking the button below:</p>
+  `;
+
+  return getEmailTemplate(title, content, verificationUrl, "Verify My Account");
+}
+
 export function formatBookingDetails(booking: any) {
   const pickupDate = new Date(booking.pickup_time)
-  const formattedDate = pickupDate.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+  const formattedDate = pickupDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })
-  const formattedTime = pickupDate.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+  const formattedTime = pickupDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
   })
 
   return `

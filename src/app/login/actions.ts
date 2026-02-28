@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 
-export async function login(formData: FormData): Promise<{ error?: string; message?: string } | void> {
+export async function login(formData: FormData): Promise<{ error?: string; message?: string; unconfirmed?: boolean } | void> {
   const supabase = await createClient()
 
   const email = formData.get('email') as string
@@ -18,6 +18,9 @@ export async function login(formData: FormData): Promise<{ error?: string; messa
   })
 
   if (error) {
+    if (error.message.includes('Email not confirmed')) {
+      return { error: 'Your email address has not been verified yet.', unconfirmed: true }
+    }
     return { error: error.message }
   }
 
@@ -51,7 +54,7 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
   const fullName = formData.get('fullName') as string
   const phone = formData.get('phone') as string
 
-  // 1. Create user with standard Supabase client (sends email verification if enabled)
+  // 1. Create user with standard Supabase client (this reserves the email)
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
@@ -69,25 +72,91 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
 
   // 2. Handle successful signup
   if (signUpData.user) {
-    // Update profile with phone number (bypassing RLS with Admin client because user might not be logged in yet if email confirmation is required)
-    const { error: updateError } = await adminAuth.updateUserById(signUpData.user.id, {
-      user_metadata: { phone: phone } // Ensuring metadata is there
-    })
-
-    // The trigger creates the profile, we just need to update phone.
+    // Update profile via Admin client to ensure phone is set
     const adminClient = createAdminClient()
     await adminClient.from('profiles').update({ phone: phone }).eq('id', signUpData.user.id)
 
-    // If confirmation is required, session will be null
-    if (!signUpData.session) {
-      return { success: true, message: 'Signup successful! Please check your email to verify your account.' }
-    } else {
-      revalidatePath('/', 'layout')
-      redirect('/dashboard')
+    // 3. Generate verification link and send via SMTP
+    const { data: linkData, error: linkError } = await adminAuth.generateLink({
+      type: 'signup',
+      email,
+      password,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/dashboard`
+      }
+    })
+
+    if (linkError) {
+      console.error('Error generating verification link:', linkError)
+      // Even if link generation fails, the user is created. They can use "Resend" later.
+      return { success: true, message: 'Account created, but we had trouble sending the verification email. Please try resending it from the login page.' }
     }
+
+    const { getVerificationEmailTemplate } = await import('@/utils/emailTemplates')
+    const { sendEmail } = await import('@/utils/email')
+
+    const verificationUrl = linkData.properties.action_link
+    const html = getVerificationEmailTemplate(fullName, verificationUrl)
+
+    await sendEmail({
+      to: email,
+      subject: 'Verify Your Rihla Limo Account',
+      html
+    })
+
+    return { success: true, message: 'Signup successful! Please check your email to verify your account.' }
   }
 
   return { error: 'Something went wrong during account creation.' }
+}
+
+export async function resendVerificationAction(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean }> {
+  const adminAuth = createAdminClient().auth.admin
+  const email = formData.get('email') as string
+
+  if (!email) return { error: 'Email is required.' }
+
+  console.log(`Resending verification to ${email}...`)
+
+  // We need to find the user first to get their name for the template
+  const { data: { users }, error: listError } = await adminAuth.listUsers()
+  const user = users.find(u => u.email === email)
+
+  if (!user) {
+    // For security, don't reveal if user exists
+    return { success: true, message: 'If an account exists with this email, a new verification link has been sent.' }
+  }
+
+  const { data: linkData, error: linkError } = await adminAuth.generateLink({
+    type: 'magiclink',
+    email,
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/dashboard`
+    }
+  })
+
+  if (linkError) {
+    return { error: 'Failed to generate verification link. Please try again later.' }
+  }
+
+  const { getVerificationEmailTemplate } = await import('@/utils/emailTemplates')
+  const { sendEmail } = await import('@/utils/email')
+
+  const fullName = user.user_metadata?.full_name || 'there'
+  const verificationUrl = linkData.properties.action_link
+  const html = getVerificationEmailTemplate(fullName, verificationUrl)
+
+  const emailResult = await sendEmail({
+    to: email,
+    subject: 'Action Required: Verify Your Rihla Limo Account',
+    html
+  })
+
+  if (!emailResult.success) {
+    return { error: 'Failed to send verification email. Please check your connection.' }
+  }
+
+  return { success: true, message: 'A new verification link has been sent to your email.' }
 }
 
 export async function signout() {
