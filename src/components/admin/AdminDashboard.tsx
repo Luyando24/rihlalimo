@@ -197,7 +197,7 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-4 lg:p-8">
                     {activeTab === 'dashboard' && (
-                        <DashboardView bookings={bookings} stats={stats} />
+                        <DashboardView bookings={bookings} stats={stats} setActiveTab={setActiveTab} />
                     )}
                     {activeTab === 'bookings' && (
                         <BookingsView bookings={bookings} drivers={drivers} />
@@ -247,7 +247,7 @@ function NavItem({ icon, label, active, onClick }: any) {
     )
 }
 
-function DashboardView({ bookings, stats }: any) {
+function DashboardView({ bookings, stats, setActiveTab }: { bookings: any[], stats: any, setActiveTab: (tab: string) => void }) {
     return (
         <div className="space-y-8">
             {/* Stats Grid */}
