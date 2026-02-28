@@ -51,39 +51,42 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
   const fullName = formData.get('fullName') as string
   const phone = formData.get('phone') as string
 
-  // 1. Create user with Admin API to skip email verification (auto-confirm)
-  const { data: adminData, error: adminError } = await adminAuth.createUser({
+  // 1. Create user with standard Supabase client (sends email verification if enabled)
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: fullName,
-      phone: phone,
-    },
+    options: {
+      data: {
+        full_name: fullName,
+        phone: phone,
+      }
+    }
   })
 
-  if (adminError) {
-    return { error: adminError.message }
+  if (signUpError) {
+    return { error: signUpError.message }
   }
 
-  // 2. Sign in the user immediately to establish a session
-  if (adminData.user) {
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  // 2. Handle successful signup
+  if (signUpData.user) {
+    // Update profile with phone number (bypassing RLS with Admin client because user might not be logged in yet if email confirmation is required)
+    const { error: updateError } = await adminAuth.updateUserById(signUpData.user.id, {
+      user_metadata: { phone: phone } // Ensuring metadata is there
     })
 
-    if (signInError) {
-      return { error: signInError.message }
+    // The trigger creates the profile, we just need to update phone.
+    const adminClient = createAdminClient()
+    await adminClient.from('profiles').update({ phone: phone }).eq('id', signUpData.user.id)
+
+    // If confirmation is required, session will be null
+    if (!signUpData.session) {
+      return { success: true, message: 'Signup successful! Please check your email to verify your account.' }
+    } else {
+      revalidatePath('/', 'layout')
+      redirect('/dashboard')
     }
-
-    // Update profile with phone number (in case trigger only handles full_name)
-    await supabase.from('profiles').update({ phone: phone }).eq('id', adminData.user.id)
-
-    revalidatePath('/', 'layout')
-    redirect('/dashboard')
   }
-  
+
   return { error: 'Something went wrong during account creation.' }
 }
 

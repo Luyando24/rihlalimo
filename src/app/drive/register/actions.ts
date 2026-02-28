@@ -14,36 +14,39 @@ export async function driverSignup(formData: FormData): Promise<{ error?: string
   const fullName = formData.get('fullName') as string
   const phone = formData.get('phone') as string
 
-  // 1. Create user with Admin API to skip email verification (auto-confirm)
+  // 1. Sign up the user (sends confirmation email if enabled in Supabase)
   // Sign up with role = 'driver'
-  const { data: adminData, error: adminError } = await adminAuth.createUser({
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: fullName,
-      role: 'driver'
-    },
+    options: {
+      data: {
+        full_name: fullName,
+        role: 'driver'
+      }
+    }
   })
 
-  if (adminError) {
-    return { error: adminError.message }
+  if (signUpError) {
+    return { error: signUpError.message }
   }
 
-  // 2. Sign in immediately
-  if (adminData.user) {
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  // 2. Handle successful signup
+  if (signUpData.user) {
+    // Update profile with phone number and role (bypassing RLS with Admin client)
+    const { error: updateError } = await adminAuth.updateUserById(signUpData.user.id, {
+      user_metadata: { phone: phone, role: 'driver' } // Ensuring metadata is there
     })
 
-    if (signInError) {
-      return { error: signInError.message }
-    }
+    // The trigger sets role to 'customer' by default, so we MUST override it to 'driver' here
+    const adminClient = createAdminClient()
+    await adminClient.from('profiles').update({ phone: phone, role: 'driver' }).eq('id', signUpData.user.id)
 
-    // Update profile with phone number
-    if (signInData.session) {
-      await supabase.from('profiles').update({ phone }).eq('id', signInData.user?.id)
+    // If confirmation is required, session will be null
+    if (!signUpData.session) {
+      return { success: true, message: 'Signup successful! Please check your email to verify your driver account.' }
+    } else {
+      revalidatePath('/', 'layout')
       redirect('/drive/onboarding')
     }
   }
