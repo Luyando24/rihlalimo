@@ -377,6 +377,7 @@ function BookingsView({ bookings, drivers }: any) {
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [selectedBooking, setSelectedBooking] = useState<any>(null)
     const [assigning, setAssigning] = useState(false)
+    const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     const handleAssignClick = (booking: any) => {
@@ -387,8 +388,10 @@ function BookingsView({ bookings, drivers }: any) {
     const handleAssignDriver = async (driverId: string) => {
         if (!selectedBooking) return
         setAssigning(true)
+        setAssigningDriverId(driverId)
         const result = await assignDriver(selectedBooking.id, driverId)
         setAssigning(false)
+        setAssigningDriverId(null)
         if (result.success) {
             setAssignModalOpen(false)
             setSelectedBooking(null)
@@ -455,7 +458,7 @@ function BookingsView({ bookings, drivers }: any) {
                                             <div className="text-xs text-gray-500 capitalize">{driver.status}</div>
                                         </div>
                                     </div>
-                                    {assigning && selectedBooking?.driver_id === driver.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>}
+                                    {assigning && assigningDriverId === driver.id && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>}
                                 </button>
                             ))}
                             {availableDrivers.length === 0 && (
@@ -563,8 +566,15 @@ function BookingsView({ bookings, drivers }: any) {
                                                 </span>
                                             </div>
                                         ) : null}
-                                        <button className="p-1 hover:bg-gray-100 rounded transition-colors group relative">
-                                            <LucideMoreHorizontal size={16} className="text-gray-500" />
+                                        <button
+                                            disabled={actionLoading === booking.id}
+                                            className="p-1 hover:bg-gray-100 rounded transition-colors group relative disabled:opacity-50"
+                                        >
+                                            {actionLoading === booking.id ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+                                            ) : (
+                                                <LucideMoreHorizontal size={16} className="text-gray-500" />
+                                            )}
 
                                             {/* Dropdown Menu */}
                                             <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg hidden group-hover:block z-10">
@@ -611,9 +621,13 @@ function BookingsView({ bookings, drivers }: any) {
 }
 
 function DriversView({ drivers }: any) {
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
+
     const handleApprove = async (driverId: string) => {
         if (confirm('Are you sure you want to approve this driver?')) {
+            setActionLoading(driverId + '-approve')
             const result = await approveDriver(driverId)
+            setActionLoading(null)
             if (result.error) {
                 alert(result.error)
             }
@@ -622,7 +636,9 @@ function DriversView({ drivers }: any) {
 
     const handleReject = async (driverId: string) => {
         if (confirm('Are you sure you want to reject this driver?')) {
+            setActionLoading(driverId + '-reject')
             const result = await rejectDriver(driverId)
+            setActionLoading(null)
             if (result.error) {
                 alert(result.error)
             }
@@ -631,7 +647,9 @@ function DriversView({ drivers }: any) {
 
     const handleDeleteUser = async (id: string) => {
         if (confirm('Are you sure you want to delete this driver? This will remove their profile and login access.')) {
+            setActionLoading(id + '-delete')
             const result = await deleteUser(id)
+            setActionLoading(null)
             if (result.error) alert(result.error)
         }
     }
@@ -714,25 +732,36 @@ function DriversView({ drivers }: any) {
                                             <>
                                                 <button
                                                     onClick={() => handleApprove(driver.id)}
-                                                    className="px-3 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
+                                                    disabled={actionLoading === driver.id + '-approve'}
+                                                    className="px-3 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 disabled:opacity-50 min-w-[70px] flex justify-center items-center"
                                                 >
-                                                    Approve
+                                                    {actionLoading === driver.id + '-approve' ? (
+                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                                    ) : 'Approve'}
                                                 </button>
                                                 <button
                                                     onClick={() => handleReject(driver.id)}
-                                                    className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
+                                                    disabled={actionLoading === driver.id + '-reject'}
+                                                    className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 disabled:opacity-50 min-w-[70px] flex justify-center items-center"
                                                 >
-                                                    Reject
+                                                    {actionLoading === driver.id + '-reject' ? (
+                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                                    ) : 'Reject'}
                                                 </button>
                                             </>
                                         )}
-                                        <button className="text-sm font-medium text-black hover:underline">Manage</button>
+                                        <button className="text-sm font-medium text-black hover:underline disabled:opacity-50" disabled={!!actionLoading}>Manage</button>
                                         <button
                                             onClick={() => handleDeleteUser(driver.id)}
-                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                            disabled={actionLoading === driver.id + '-delete'}
+                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                             title="Delete Driver"
                                         >
-                                            <LucideTrash2 size={16} />
+                                            {actionLoading === driver.id + '-delete' ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                            ) : (
+                                                <LucideTrash2 size={16} />
+                                            )}
                                         </button>
                                     </div>
                                 </td>
@@ -751,9 +780,13 @@ function DriversView({ drivers }: any) {
 }
 
 function CustomersView({ customers, onViewHistory }: any) {
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
+
     const handleDeleteUser = async (id: string) => {
         if (confirm('Are you sure you want to delete this customer? This will remove their profile and login access.')) {
+            setActionLoading(id)
             const result = await deleteUser(id)
+            setActionLoading(null)
             if (result.error) alert(result.error)
         }
     }
@@ -823,10 +856,15 @@ function CustomersView({ customers, onViewHistory }: any) {
                                     </button>
                                     <button
                                         onClick={() => handleDeleteUser(customer.id)}
-                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                        disabled={actionLoading === customer.id}
+                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                         title="Delete Customer"
                                     >
-                                        <LucideTrash2 size={16} />
+                                        {actionLoading === customer.id ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                        ) : (
+                                            <LucideTrash2 size={16} />
+                                        )}
                                     </button>
                                 </td>
                             </tr>
@@ -936,6 +974,7 @@ function CustomerHistoryView({ customer, bookings, onBack }: any) {
 function AdminsView({ admins, currentUser }: any) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -961,7 +1000,9 @@ function AdminsView({ admins, currentUser }: any) {
             return
         }
         if (confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
+            setActionLoading(userId)
             const result = await deleteUser(userId)
+            setActionLoading(null)
             if (result.error) {
                 alert(result.error)
             }
@@ -1001,10 +1042,15 @@ function AdminsView({ admins, currentUser }: any) {
                                     {admin.id !== currentUser.id && (
                                         <button
                                             onClick={() => handleDeleteAdmin(admin.id)}
-                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                            disabled={actionLoading === admin.id}
+                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                             title="Delete Admin"
                                         >
-                                            <LucideTrash2 size={16} />
+                                            {actionLoading === admin.id ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                            ) : (
+                                                <LucideTrash2 size={16} />
+                                            )}
                                         </button>
                                     )}
                                 </td>
@@ -1077,6 +1123,7 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
     const [isEditTypeModalOpen, setIsEditTypeModalOpen] = useState(false)
     const [editingType, setEditingType] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     // Vehicle Form
     const [formData, setFormData] = useState({
@@ -1204,7 +1251,9 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
 
     const handleDeleteVehicle = async (id: string) => {
         if (confirm('Are you sure you want to delete this vehicle?')) {
+            setActionLoading(id)
             const result = await deleteVehicle(id)
+            setActionLoading(null)
             if (result.error) {
                 alert(result.error)
             }
@@ -1213,7 +1262,9 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
 
     const handleDeleteType = async (id: string) => {
         if (confirm('Are you sure you want to delete this vehicle type? This may affect existing vehicles and bookings.')) {
+            setActionLoading(id)
             const result = await deleteVehicleType(id)
+            setActionLoading(null)
             if (result.error) {
                 alert(result.error)
             } else {
@@ -1305,9 +1356,14 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteVehicle(vehicle.id)}
-                                                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                    disabled={actionLoading === vehicle.id}
+                                                    className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                                 >
-                                                    <LucideTrash2 size={16} />
+                                                    {actionLoading === vehicle.id ? (
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                                    ) : (
+                                                        <LucideTrash2 size={16} />
+                                                    )}
                                                 </button>
                                             </div>
                                         </td>
@@ -1380,9 +1436,14 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteType(type.id)}
-                                                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                    disabled={actionLoading === type.id}
+                                                    className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
                                                 >
-                                                    <LucideTrash2 size={16} />
+                                                    {actionLoading === type.id ? (
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                                    ) : (
+                                                        <LucideTrash2 size={16} />
+                                                    )}
                                                 </button>
                                             </div>
                                         </td>
@@ -1978,9 +2039,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDelete(rule.id)}
-                                                className="text-red-600 hover:text-red-800 transition-colors"
+                                                disabled={isLoading}
+                                                className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                                             >
-                                                <LucideTrash2 size={16} />
+                                                {isLoading ? (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                                ) : (
+                                                    <LucideTrash2 size={16} />
+                                                )}
                                             </button>
                                         </td>
                                     </tr>
@@ -2019,9 +2085,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDelete(rate.id)}
-                                                className="text-red-600 hover:text-red-800 transition-colors"
+                                                disabled={isLoading}
+                                                className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                                             >
-                                                <LucideTrash2 size={16} />
+                                                {isLoading ? (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                                ) : (
+                                                    <LucideTrash2 size={16} />
+                                                )}
                                             </button>
                                         </td>
                                     </tr>
@@ -2060,9 +2131,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDelete(fee.id)}
-                                                className="text-red-600 hover:text-red-800 transition-colors"
+                                                disabled={isLoading}
+                                                className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                                             >
-                                                <LucideTrash2 size={16} />
+                                                {isLoading ? (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                                ) : (
+                                                    <LucideTrash2 size={16} />
+                                                )}
                                             </button>
                                         </td>
                                     </tr>
@@ -2106,9 +2182,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => handleDelete(tm.id)}
-                                                className="text-red-600 hover:text-red-800 transition-colors"
+                                                disabled={isLoading}
+                                                className="text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
                                             >
-                                                <LucideTrash2 size={16} />
+                                                {isLoading ? (
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                                ) : (
+                                                    <LucideTrash2 size={16} />
+                                                )}
                                             </button>
                                         </td>
                                     </tr>
@@ -2264,9 +2345,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                className="px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
                             >
-                                {isLoading ? 'Saving...' : 'Save Email Settings'}
+                                {isLoading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Saving...
+                                    </>
+                                ) : 'Save Email Settings'}
                             </button>
                         </div>
                     </form>
@@ -2284,9 +2370,14 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                             <button
                                 onClick={handleTestSmtp}
                                 disabled={isTestingSmtp}
-                                className="px-6 py-2 border border-black rounded-lg text-sm font-bold hover:bg-black hover:text-white transition-all disabled:opacity-50"
+                                className="px-6 py-2 border border-black rounded-lg text-sm font-bold hover:bg-black hover:text-white transition-all disabled:opacity-50 flex items-center gap-2"
                             >
-                                {isTestingSmtp ? 'Sending...' : 'Send Test'}
+                                {isTestingSmtp ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+                                        Sending...
+                                    </>
+                                ) : 'Send Test'}
                             </button>
                         </div>
                         <p className="text-xs text-gray-500 mt-2">Enter an email to send a test message using your current settings.</p>
@@ -2487,9 +2578,16 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                    className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
                                 >
-                                    {isLoading ? 'Adding...' : 'Add Setting'}
+                                    {isLoading ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        activeSection === 'pricing' || activeSection === 'rates' || activeSection === 'airport' || activeSection === 'time' ? 'Add Setting' : 'Save'
+                                    )}
                                 </button>
                             </div>
                         </form>

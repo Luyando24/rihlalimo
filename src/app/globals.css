@@ -23,6 +23,13 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+a, 
+button, 
+[role="button"],
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
 @layer components {
   .btn-primary {
     @apply px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors cursor-pointer font-medium;

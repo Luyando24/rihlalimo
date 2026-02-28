@@ -671,13 +671,51 @@ export async function deleteUser(userId: string) {
 
   const supabaseAdmin = createAdminClient()
 
-  // Delete from Auth (cascades to profiles in typical Supabase setups)
-  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+  try {
+    // 1. Get user's bookings to delete associated payments
+    const { data: userBookings } = await supabaseAdmin
+      .from('bookings')
+      .select('id')
+      .eq('customer_id', userId)
 
-  if (error) return { error: error.message }
+    const bookingIds = userBookings?.map(b => b.id) || []
 
-  revalidatePath('/admin')
-  return { success: true }
+    if (bookingIds.length > 0) {
+      // 2. Delete associated payments
+      await supabaseAdmin
+        .from('payments')
+        .delete()
+        .in('booking_id', bookingIds)
+
+      // 3. Delete customer's bookings
+      await supabaseAdmin
+        .from('bookings')
+        .delete()
+        .eq('customer_id', userId)
+    }
+
+    // 4. Handle bookings where user is the driver
+    await supabaseAdmin
+      .from('bookings')
+      .update({ driver_id: null })
+      .eq('driver_id', userId)
+
+    // 5. Delete driver profile if exists
+    await supabaseAdmin
+      .from('drivers')
+      .delete()
+      .eq('id', userId)
+
+    // 6. Delete from Auth (cascades to profiles)
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    if (authError) throw authError
+
+    revalidatePath('/admin')
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error in deleteUser:', err)
+    return { error: err.message || 'Failed to delete user and associated data. There might be persistent database constraints.' }
+  }
 }
 
 export async function addAdmin(formData: { email: string; fullName: string; password?: string }) {
