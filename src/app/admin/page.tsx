@@ -32,7 +32,7 @@ export default async function AdminPage() {
   const { count: activeBookings } = await supabase
     .from('bookings')
     .select('*', { count: 'exact', head: true })
-    .in('status', ['pending', 'confirmed'])
+    .in('status', ['pending', 'confirmed', 'assigned', 'en_route', 'in_progress'])
 
   const { count: totalDrivers } = await supabase
     .from('profiles')
@@ -58,8 +58,9 @@ export default async function AdminPage() {
     `)
     .order('created_at', { ascending: false })
 
-  // Calculate pending drivers
+  // Calculate pending drivers and active (online) drivers
   const pendingDriversCount = drivers?.filter(d => d.status === 'pending_approval').length || 0
+  const onlineDriversCount = drivers?.filter(d => d.status === 'online' || d.status === 'busy').length || 0
 
   // Fetch Customers
   const { data: customers } = await supabase
@@ -106,9 +107,8 @@ export default async function AdminPage() {
     }
   }
 
-  // Calculate total revenue (simple sum of all bookings for now)
-  // In a real app, this should be an aggregation query or a separate stats table
-  const totalRevenue = bookings?.reduce((acc, booking) => acc + (booking.total_price_calculated || 0), 0) || 0
+  // Calculate total revenue (only COMPLETED bookings)
+  const totalRevenue = bookings?.filter(b => b.status === 'completed').reduce((acc, booking) => acc + (booking.total_price_calculated || 0), 0) || 0
 
   // Fetch Admins
   const { data: adminProfiles } = await supabase
@@ -120,7 +120,8 @@ export default async function AdminPage() {
   const stats = {
     totalRevenue,
     activeBookings: activeBookings || 0,
-    activeDrivers: totalDrivers || 0,
+    activeDrivers: onlineDriversCount,
+    totalDrivers: totalDrivers || 0,
     totalCustomers: totalCustomers || 0,
     pendingDrivers: pendingDriversCount
   }

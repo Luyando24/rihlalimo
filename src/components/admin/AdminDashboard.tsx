@@ -255,29 +255,21 @@ function DashboardView({ bookings, stats }: any) {
                 <StatCard
                     label="Total Revenue"
                     value={`$${stats.totalRevenue.toLocaleString()}`}
-                    change="+12.5%"
-                    isPositive={true}
                     icon={<LucideDollarSign size={20} className="text-green-600" />}
                 />
                 <StatCard
                     label="Active Bookings"
                     value={stats.activeBookings}
-                    change="+4"
-                    isPositive={true}
                     icon={<LucideCalendar size={20} className="text-blue-600" />}
                 />
                 <StatCard
-                    label="Active Drivers"
+                    label="Drivers Online"
                     value={stats.activeDrivers}
-                    change="0"
-                    isPositive={true}
                     icon={<LucideCar size={20} className="text-black" />}
                 />
                 <StatCard
                     label="Total Customers"
                     value={stats.totalCustomers}
-                    change="+2.1%"
-                    isPositive={true}
                     icon={<LucideUsers size={20} className="text-purple-600" />}
                 />
             </div>
@@ -287,7 +279,12 @@ function DashboardView({ bookings, stats }: any) {
                 <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                         <h3 className="font-bold text-lg">Recent Bookings</h3>
-                        <button className="text-sm font-medium text-blue-600 hover:underline">View All</button>
+                        <button
+                            onClick={() => setActiveTab('bookings')}
+                            className="text-sm font-medium text-blue-600 hover:underline"
+                        >
+                            View All
+                        </button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
@@ -336,7 +333,10 @@ function DashboardView({ bookings, stats }: any) {
                                 : "No new driver applications."
                             }
                         </p>
-                        <button className="w-full bg-white text-black font-medium py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <button
+                            onClick={() => setActiveTab('drivers')}
+                            className="w-full bg-white text-black font-medium py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
                             Review Applications
                         </button>
                     </div>
