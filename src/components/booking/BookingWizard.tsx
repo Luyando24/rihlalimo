@@ -57,10 +57,21 @@ export default function BookingWizard({ user, profile }: any) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [priceQuote, setPriceQuote] = useState<any>(null)
   const [vehicles, setVehicles] = useState<any[]>([])
-  const [loadingVehicles, setLoadingVehicles] = useState(false)
+  const [loadingVehicles, setLoadingVehicles] = useState(true)
   const [loadingQuote, setLoadingQuote] = useState(false)
   const [loadingBooking, setLoadingBooking] = useState(false)
   const [bookingResult, setBookingResult] = useState<any>(null)
+
+  // Load vehicles on mount
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setLoadingVehicles(true)
+      const data = await getVehicleTypes()
+      setVehicles(data || [])
+      setLoadingVehicles(false)
+    }
+    fetchVehicles()
+  }, [])
 
   useEffect(() => {
     const initialPickup = searchParams.get('pickup') || ''
@@ -79,9 +90,9 @@ export default function BookingWizard({ user, profile }: any) {
           : prev.serviceType
       }))
 
-      // If service type is provided, auto-advance to step 2
+      // If service type is provided, auto-advance to step 3 (since step 1 is vehicle, step 2 is service)
       if (initialService) {
-        setStep(2)
+        // Optionally you could set it to 3 if vehicle was also somehow provided, but let's just keep flow straightforward
       }
     }
   }, [searchParams])
@@ -111,18 +122,6 @@ export default function BookingWizard({ user, profile }: any) {
         const countryComp = components.find(c => c.types.includes('country'))
         country = countryComp?.short_name
 
-        if (bestResult) {
-          // Keep bounds updated based on current location, but don't auto-fill pickup
-          // const address = formatAddress(bestResult)
-          // setFormData(prev => ({
-          //   ...prev,
-          //   pickupLocation: address,
-          //   pickupCoordinates: {
-          //     lat: bestResult.geometry.location.lat(),
-          //     lng: bestResult.geometry.location.lng()
-          //   }
-          // }))
-        }
       } catch { }
 
       setAutoOptions(prev => ({
@@ -152,7 +151,7 @@ export default function BookingWizard({ user, profile }: any) {
     const isPlusCode = (str: string) => /^[A-Z0-9]{4,8}\+[A-Z0-9]{2,}$/.test(str);
 
     if (name && !isPlusCode(name) && !cleaned.startsWith(name)) {
-      if (!/^\d+$/.test(name)) {
+      if (!/^\\d+$/.test(name)) {
         return `${name}, ${cleaned}`;
       }
     }
@@ -285,9 +284,11 @@ export default function BookingWizard({ user, profile }: any) {
   const validateStep = (currentStep: number) => {
     const newErrors: Record<string, string> = {}
 
-    if (currentStep === 1) {
+    if (currentStep === 1) { // Vehicle
+      if (!formData.vehicleTypeId) newErrors.vehicleTypeId = 'Please select a vehicle'
+    } else if (currentStep === 2) { // Service
       if (!formData.serviceType) newErrors.serviceType = 'Please select a service type'
-    } else if (currentStep === 2) {
+    } else if (currentStep === 3) { // Details
       if (!formData.pickupLocation.trim()) newErrors.pickupLocation = 'Pickup location is required'
       if (formData.serviceType !== 'hourly' && !formData.dropoffLocation.trim()) newErrors.dropoffLocation = 'Drop-off location is required'
       if (!formData.date) newErrors.date = 'Date is required'
@@ -316,9 +317,7 @@ export default function BookingWizard({ user, profile }: any) {
       if (formData.serviceType === 'hourly') {
         if (formData.hours < 2) newErrors.hours = 'Minimum 2 hours required'
       }
-    } else if (currentStep === 3) {
-      if (!formData.vehicleTypeId) newErrors.vehicleTypeId = 'Please select a vehicle'
-    } else if (currentStep === 4) {
+    } else if (currentStep === 4) { // Payment
       if (!formData.passengerName.trim()) newErrors.passengerName = 'Passenger name is required'
       if (!formData.passengerPhone.trim()) newErrors.passengerPhone = 'Passenger phone number is required'
     }
@@ -327,9 +326,9 @@ export default function BookingWizard({ user, profile }: any) {
     return Object.keys(newErrors).length === 0
   }
 
-  const nextStep = () => {
+  const nextStep = async () => {
     // If Pickup Now is selected, refresh time to current moment before validating
-    if (step === 2 && isPickupNow) {
+    if (step === 3 && isPickupNow) {
       const now = new Date()
       const year = now.getFullYear()
       const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -347,49 +346,8 @@ export default function BookingWizard({ user, profile }: any) {
 
     if (!validateStep(step)) return
 
-    if (step === 2) {
-      // Load vehicles before going to step 3
-      loadVehicles()
-    }
-    setStep(prev => prev + 1)
-  }
-  const prevStep = () => setStep(prev => prev - 1)
-
-  const loadVehicles = async () => {
-    setLoadingVehicles(true)
-    const data = await getVehicleTypes()
-
-    // Proactively calculate quotes for all vehicles to show prices immediately
-    const vehiclesWithQuotes = await Promise.all((data || []).map(async (v: any) => {
-      const res = await getQuoteAction({
-        serviceType: formData.serviceType,
-        pickupLocation: formData.pickupLocation,
-        dropoffLocation: formData.dropoffLocation,
-        pickupCoordinates: formData.pickupCoordinates,
-        dropoffCoordinates: formData.dropoffCoordinates,
-        date: formData.date,
-        time: formData.time,
-        vehicleTypeId: v.id,
-        meetAndGreet: formData.meetAndGreet,
-        hours: formData.hours,
-      })
-      return {
-        ...v,
-        quote: res.success ? res.quote : null,
-        quoteError: res.success ? null : (res as any).error
-      }
-    }))
-
-    setVehicles(vehiclesWithQuotes)
-    setLoadingVehicles(false)
-  }
-
-  const handleVehicleSelect = async (vehicle: any) => {
-    updateFormData('vehicleTypeId', vehicle.id)
-    if (vehicle.quote) {
-      setPriceQuote(vehicle.quote)
-    } else {
-      // Fallback if quote wasn't pre-calculated
+    if (step === 3) {
+      // Calculate price when going to step 4
       setLoadingQuote(true)
       const result = await getQuoteAction({
         serviceType: formData.serviceType,
@@ -399,7 +357,7 @@ export default function BookingWizard({ user, profile }: any) {
         dropoffCoordinates: formData.dropoffCoordinates,
         date: formData.date,
         time: formData.time,
-        vehicleTypeId: vehicle.id,
+        vehicleTypeId: formData.vehicleTypeId,
         meetAndGreet: formData.meetAndGreet,
         hours: formData.hours,
       })
@@ -408,9 +366,18 @@ export default function BookingWizard({ user, profile }: any) {
         setPriceQuote(result.quote)
       } else {
         alert(result.error || 'Failed to calculate price')
+        setLoadingQuote(false)
+        return // Stay on step 3 if quote fails
       }
       setLoadingQuote(false)
     }
+
+    setStep(prev => prev + 1)
+  }
+  const prevStep = () => setStep(prev => prev - 1)
+
+  const handleVehicleSelect = (vehicle: any) => {
+    updateFormData('vehicleTypeId', vehicle.id)
   }
 
   const handleBooking = async () => {
@@ -445,17 +412,17 @@ export default function BookingWizard({ user, profile }: any) {
         <div className="flex justify-between items-center text-sm font-medium text-gray-500">
           <div className={`flex items-center ${step >= 1 ? 'text-black' : ''}`}>
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 1 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>1</span>
-            Service
+            Vehicle
           </div>
           <div className={`w-12 h-0.5 ${step >= 2 ? 'bg-black' : 'bg-gray-300'}`}></div>
           <div className={`flex items-center ${step >= 2 ? 'text-black' : ''}`}>
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 2 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>2</span>
-            Details
+            Service
           </div>
           <div className={`w-12 h-0.5 ${step >= 3 ? 'bg-black' : 'bg-gray-300'}`}></div>
           <div className={`flex items-center ${step >= 3 ? 'text-black' : ''}`}>
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 3 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>3</span>
-            Vehicle
+            Details
           </div>
           <div className={`w-12 h-0.5 ${step >= 4 ? 'bg-black' : 'bg-gray-300'}`}></div>
           <div className={`flex items-center ${step >= 4 ? 'text-black' : ''}`}>
@@ -467,6 +434,61 @@ export default function BookingWizard({ user, profile }: any) {
 
       <div className="p-8">
         {step === 1 && (
+          <div>
+            <h2 className="text-2xl font-light mb-6 text-black">Select Vehicle</h2>
+
+            {loadingVehicles ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {vehicles.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No vehicles available for your selection.</p>
+                ) : (
+                  vehicles.map((vehicle: any) => (
+                    <div
+                      key={vehicle.id}
+                      onClick={() => handleVehicleSelect(vehicle)}
+                      className={`flex flex-col md:flex-row items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.vehicleTypeId === vehicle.id ? 'border-black ring-1 ring-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}
+                    >
+                      <div className="w-full md:w-1/3 h-32 relative mb-4 md:mb-0">
+                        {/* Placeholder for image if not available or use vehicle.image_url */}
+                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                          {vehicle.image_url ? (
+                            <img src={vehicle.image_url} alt={vehicle.name} className="w-full h-full object-cover rounded-lg" />
+                          ) : (
+                            <LucideCar className="w-12 h-12 text-gray-400" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1 md:px-6 w-full text-center md:text-left">
+                        <h3 className="text-lg font-bold text-gray-900">{vehicle.name}</h3>
+                        <p className="text-sm text-gray-500 mb-2">{vehicle.description}</p>
+                        <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1"><LucideUsers size={16} /> {vehicle.capacity_passengers}</span>
+                          <span className="flex items-center gap-1"><LucideBriefcase size={16} /> {vehicle.capacity_luggage}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end mt-8">
+              <button
+                onClick={nextStep}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!formData.vehicleTypeId}
+              >
+                Next Step
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-light mb-6 text-black">Select Service Type</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -495,13 +517,14 @@ export default function BookingWizard({ user, profile }: any) {
                 onClick={() => updateFormData('serviceType', 'airport_dropoff')}
               />
             </div>
-            <div className="flex justify-end mt-8">
+            <div className="flex justify-between mt-8">
+              <button onClick={prevStep} className="btn-secondary">Back</button>
               <button onClick={nextStep} className="btn-primary">Next Step</button>
             </div>
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-light mb-6 text-black">Ride Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -697,97 +720,17 @@ export default function BookingWizard({ user, profile }: any) {
                 {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}
               </div>
             </div>
-            <div className="flex justify-between mt-8">
-              <button onClick={prevStep} className="btn-secondary">Back</button>
-              <button onClick={nextStep} className="btn-primary">Next Step</button>
-            </div>
-          </div>
-        )}
 
-        {step === 3 && (
-          <div>
-            <h2 className="text-2xl font-light mb-6 text-black">Select Vehicle</h2>
-
-            {loadingVehicles ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {vehicles.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No vehicles available for your selection.</p>
-                ) : (
-                  vehicles.map((vehicle: any) => (
-                    <div
-                      key={vehicle.id}
-                      onClick={() => handleVehicleSelect(vehicle)}
-                      className={`flex flex-col md:flex-row items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.vehicleTypeId === vehicle.id ? 'border-black ring-1 ring-black bg-gray-50' : 'border-gray-200 hover:border-black'}`}
-                    >
-                      <div className="w-full md:w-1/3 h-32 relative mb-4 md:mb-0">
-                        {/* Placeholder for image if not available or use vehicle.image_url */}
-                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
-                          {vehicle.image_url ? (
-                            <img src={vehicle.image_url} alt={vehicle.name} className="w-full h-full object-cover rounded-lg" />
-                          ) : (
-                            <LucideCar className="w-12 h-12 text-gray-400" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex-1 md:px-6 w-full text-center md:text-left">
-                        <h3 className="text-lg font-bold text-gray-900">{vehicle.name}</h3>
-                        <p className="text-sm text-gray-500 mb-2">{vehicle.description}</p>
-                        <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1"><LucideUsers size={16} /> {vehicle.capacity_passengers}</span>
-                          <span className="flex items-center gap-1"><LucideBriefcase size={16} /> {vehicle.capacity_luggage}</span>
-                        </div>
-                      </div>
-                      <div className="text-right w-full md:w-auto mt-4 md:mt-0">
-                        <div className="text-xl font-bold text-black">
-                          {vehicle.quote ? (
-                            <div className="flex flex-col items-end">
-                              <span>${Number(vehicle.quote.price).toFixed(2)}</span>
-                              {vehicle.quote.distanceKm > 0 && (
-                                <span className="text-[10px] uppercase tracking-wider text-gray-400 font-normal">
-                                  {(vehicle.quote.displayDistance || vehicle.quote.distanceKm).toFixed(1)} {vehicle.quote.distanceUnit || 'km'}
-                                  {vehicle.quote.isSimulation && (
-                                    <span className="ml-1 text-amber-500 normal-case" title={vehicle.quote.simulationReason}>
-                                      (Simulated)
-                                    </span>
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            loadingVehicles ? (
-                              <span className="text-sm font-normal text-gray-500">Calculating...</span>
-                            ) : (
-                              <div className="flex flex-col items-end">
-                                <span className="text-sm font-normal text-red-500">Price unavailable</span>
-                                {vehicle.quoteError && (
-                                  <span className="text-[10px] text-red-400 max-w-[150px] leading-tight">
-                                    {vehicle.quoteError}
-                                  </span>
-                                )}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
+            {loadingQuote && (
+              <div className="mt-4 flex items-center justify-center text-sm text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                Calculating price...
               </div>
             )}
 
             <div className="flex justify-between mt-8">
               <button onClick={prevStep} className="btn-secondary">Back</button>
-              <button
-                onClick={nextStep}
-                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!formData.vehicleTypeId || !priceQuote}
-              >
-                Next Step
-              </button>
+              <button onClick={nextStep} disabled={loadingQuote} className="btn-primary disabled:opacity-50">Continue to Payment</button>
             </div>
           </div>
         )}
