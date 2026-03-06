@@ -5,6 +5,11 @@ import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck,
 import { getVehicleTypes, getQuoteAction, createBookingAction } from '@/app/book/actions'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
 import { useSearchParams } from 'next/navigation'
+import { Elements } from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
+import CheckoutForm from './CheckoutForm'
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
 
 const libraries: ("places")[] = ["places"];
 
@@ -427,6 +432,11 @@ export default function BookingWizard({ user, profile }: any) {
           <div className={`w-12 h-0.5 ${step >= 4 ? 'bg-black' : 'bg-gray-300'}`}></div>
           <div className={`flex items-center ${step >= 4 ? 'text-black' : ''}`}>
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 4 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>4</span>
+            Summary
+          </div>
+          <div className={`w-12 h-0.5 ${step >= 5 ? 'bg-black' : 'bg-gray-300'}`}></div>
+          <div className={`flex items-center ${step >= 5 ? 'text-black' : ''}`}>
+            <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 5 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>5</span>
             Payment
           </div>
         </div>
@@ -841,7 +851,7 @@ export default function BookingWizard({ user, profile }: any) {
                 ) : (
                   <>
                     <LucideCreditCard size={18} />
-                    Confirm & Book
+                    Proceed to Payment
                   </>
                 )}
               </button>
@@ -850,6 +860,29 @@ export default function BookingWizard({ user, profile }: any) {
         )}
 
         {step === 5 && (
+          <div className="py-8 w-full max-w-lg mx-auto">
+            <h2 className="text-2xl font-light mb-6 text-black text-center">Complete Payment</h2>
+
+            {bookingResult?.clientSecret ? (
+              <Elements stripe={stripePromise} options={{ clientSecret: bookingResult.clientSecret, appearance: { theme: 'stripe' } }}>
+                <CheckoutForm
+                  clientSecret={bookingResult.clientSecret}
+                  amount={priceQuote?.price || 0}
+                  onSuccess={() => setStep(6)}
+                />
+              </Elements>
+            ) : (
+              <div className="text-center">
+                <p className="text-gray-600 mb-6">Payment step is simulated for development.</p>
+                <button onClick={() => setStep(6)} className="btn-primary w-full py-3">
+                  Simulate Payment Success
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 6 && (
           <div className="text-center py-12">
             <div className="flex justify-center mb-6">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
