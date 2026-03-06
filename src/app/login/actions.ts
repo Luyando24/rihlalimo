@@ -88,7 +88,10 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
 
     if (linkError) {
       console.error('Error generating verification link:', linkError)
-      // Even if link generation fails, the user is created. They can use "Resend" later.
+      if (linkError.message.includes('already been registered') || linkError.code === 'email_exists') {
+        return { error: 'An account with this email address already exists. Please log in instead.' }
+      }
+      // Even if link generation fails for other reasons, the user is created. They can use "Resend" later.
       return { success: true, message: 'Account created, but we had trouble sending the verification email. Please try resending it from the login page.' }
     }
 
