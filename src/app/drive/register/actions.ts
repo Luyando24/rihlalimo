@@ -49,9 +49,6 @@ export async function driverSignup(formData: FormData): Promise<{ error?: string
 
     if (linkError) {
       console.error('Error generating verification link:', linkError)
-      if (linkError.message.includes('already been registered') || linkError.code === 'email_exists') {
-        return { error: 'A driver account with this email address already exists. Please log in instead.' }
-      }
       return { success: true, message: 'Driver account created! We had trouble sending the verification email. Please try logging in to resend it.' }
     }
 

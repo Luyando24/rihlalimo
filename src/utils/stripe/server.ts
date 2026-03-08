@@ -6,4 +6,5 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock'
     name: 'Rihla Limo',
     version: '0.1.0',
   },
+  httpClient: Stripe.createFetchHttpClient(),
 })
