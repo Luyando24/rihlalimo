@@ -31,7 +31,8 @@ import {
     LucideBriefcase,
     LucidePlane,
     LucideEye,
-    LucideEyeOff
+    LucideEyeOff,
+    LucideNewspaper
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
@@ -60,9 +61,10 @@ import {
     deleteUser,
     addAdmin
 } from '@/app/admin/actions'
+import { createNewsPost, deleteNewsPost } from '@/app/admin/news-actions'
 import { getVehicleTypes } from '@/app/book/actions'
 
-export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats }: any) {
+export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats, newsPosts = [] }: any) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('dashboard')
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
@@ -139,6 +141,12 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                             label="Settings"
                             active={activeTab === 'settings'}
                             onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideNewspaper size={20} />}
+                            label="Newsroom"
+                            active={activeTab === 'newsroom'}
+                            onClick={() => { setActiveTab('newsroom'); setIsSidebarOpen(false); }}
                         />
                     </nav>
 
@@ -222,7 +230,10 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                     {activeTab === 'settings' && (
                         <SettingsView settings={settings} vehicleTypes={vehicleTypes} />
                     )}
-                    {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings') && (
+                    {activeTab === 'newsroom' && (
+                        <NewsroomView posts={newsPosts} />
+                    )}
+                    {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings' && activeTab !== 'newsroom' && activeTab !== 'admins') && (
                         <div className="flex flex-col items-center justify-center h-[50vh] text-gray-400">
                             <LucideSettings size={48} className="mb-4 opacity-20" />
                             <p>This section is under development.</p>
@@ -2663,5 +2674,197 @@ function StatusBadge({ status }: { status: string }) {
             {icons[status]}
             {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
+    )
+}
+
+function NewsroomView({ posts = [] }: { posts: any[] }) {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [formData, setFormData] = useState({
+        title: '',
+        slug: '',
+        excerpt: '',
+        content: '',
+        image_url: ''
+    })
+
+    const handleCreatePost = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsLoading(true)
+        
+        const form = new FormData()
+        Object.entries(formData).forEach(([key, value]) => form.append(key, value))
+        
+        const result = await createNewsPost(form)
+        setIsLoading(false)
+        
+        if (result.success) {
+            setIsAddModalOpen(false)
+            setFormData({ title: '', slug: '', excerpt: '', content: '', image_url: '' })
+        } else {
+            alert(result.error || 'Failed to create post')
+        }
+    }
+
+    const handleDeletePost = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this news post?')) return
+        const result = await deleteNewsPost(id)
+        if (!result.success) {
+            alert(result.error || 'Failed to delete post')
+        }
+    }
+
+    // Auto-generate slug from title
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const title = e.target.value
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+        setFormData({ ...formData, title, slug })
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Newsroom Management</h2>
+                    <p className="text-gray-500 mt-1">Create and manage news articles and announcements.</p>
+                </div>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm"
+                >
+                    <LucidePlus size={16} /> Add Post
+                </button>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 font-medium">
+                            <tr>
+                                <th className="px-6 py-4">Title</th>
+                                <th className="px-6 py-4">Slug</th>
+                                <th className="px-6 py-4">Published</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {posts.map((post: any) => (
+                                <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-gray-900">{post.title}</td>
+                                    <td className="px-6 py-4 text-gray-500">{post.slug}</td>
+                                    <td className="px-6 py-4 text-gray-500">
+                                        {new Date(post.published_at).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button
+                                            onClick={() => handleDeletePost(post.id)}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-2"
+                                            title="Delete Post"
+                                        >
+                                            <LucideTrash2 size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {posts.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                        No news posts found. Click "Add Post" to create one.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+                            <h3 className="text-xl font-bold">Create News Post</h3>
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="text-gray-400 hover:text-black transition-colors"
+                            >
+                                <LucideX size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleCreatePost} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={handleTitleChange}
+                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                                    placeholder="e.g. Rihla Limo Expands Fleet"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL)</label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={formData.slug}
+                                    onChange={e => setFormData({ ...formData, slug: e.target.value })}
+                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                                    placeholder="e.g. rihla-limo-expands-fleet"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL (Optional)</label>
+                                <input
+                                    type="url"
+                                    value={formData.image_url}
+                                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                                    placeholder="https://example.com/image.jpg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Excerpt (Short Description)</label>
+                                <textarea
+                                    rows={2}
+                                    value={formData.excerpt}
+                                    onChange={e => setFormData({ ...formData, excerpt: e.target.value })}
+                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                                    placeholder="A brief summary of the article..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Content (Markdown/HTML supported)</label>
+                                <textarea
+                                    required
+                                    rows={8}
+                                    value={formData.content}
+                                    onChange={e => setFormData({ ...formData, content: e.target.value })}
+                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
+                                    placeholder="Write your full article here..."
+                                />
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                                >
+                                    {isLoading ? 'Publishing...' : 'Publish Post'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
     )
 }

@@ -3,6 +3,15 @@ import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { LucideDollarSign, LucideCalendar, LucideCar } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Drive With Us',
+  description: 'Join our elite network of professional chauffeurs. Earn competitive rates, enjoy flexible schedules, and drive premium fleets.',
+  openGraph: {
+    url: '/drive',
+  },
+}
 
 export default async function DrivePage() {
   const supabase = await createClient()

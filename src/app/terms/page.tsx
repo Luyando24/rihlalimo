@@ -1,6 +1,15 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'Read the terms of service and conditions for using the Rihla Limo luxury transportation platform.',
+  openGraph: {
+    url: '/terms',
+  },
+}
 
 export default async function TermsPage() {
   const supabase = await createClient()

@@ -117,6 +117,12 @@ export default async function AdminPage() {
     .eq('role', 'admin')
     .order('created_at', { ascending: false })
 
+  // Fetch News Posts
+  const { data: newsPosts } = await supabase
+    .from('news_posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+
   const stats = {
     totalRevenue,
     activeBookings: activeBookings || 0,
@@ -137,6 +143,7 @@ export default async function AdminPage() {
       vehicleTypes={vehicleTypes || []}
       settings={settings}
       stats={stats}
+      newsPosts={newsPosts || []}
     />
   )
 }

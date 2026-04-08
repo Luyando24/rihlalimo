@@ -1,6 +1,15 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Investor Relations',
+  description: 'Information for Rihla Limo investors, including financial highlights, key metrics, and company growth.',
+  openGraph: {
+    url: '/investors',
+  },
+}
 
 export default async function InvestorsPage() {
   const supabase = await createClient()

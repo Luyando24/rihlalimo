@@ -3,6 +3,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucidePlane, LucideMapPin, LucideClock, LucideCalendar } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Our Services',
+  description: 'Explore our range of premium chauffeur services including airport transfers, hourly charter, and point-to-point transportation.',
+  openGraph: {
+    url: '/services',
+  },
+}
 
 export default async function ServicesPage() {
   const supabase = await createClient()

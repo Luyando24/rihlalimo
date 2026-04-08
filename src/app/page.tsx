@@ -4,6 +4,15 @@ import Hero from '@/components/home/Hero'
 import { LucideCar, LucideShieldCheck, LucideClock, LucideMapPin, LucideArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Rihla Limo | Premium Global Chauffeur Service',
+  description: 'Experience world-class luxury transportation, airport transfers, and point-to-point chauffeur services in major cities worldwide.',
+  openGraph: {
+    url: '/',
+  },
+}
 
 export default async function Home() {
    const supabase = await createClient()

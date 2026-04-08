@@ -3,6 +3,15 @@ import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { LucideMapPin, LucideClock, LucideShieldCheck } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Point-to-Point Transfers',
+  description: 'Seamless, direct transportation from door to door. Travel in luxury without the hassle with Rihla Limo.',
+  openGraph: {
+    url: '/point-to-point',
+  },
+}
 
 export default async function PointToPointPage() {
   const supabase = await createClient()

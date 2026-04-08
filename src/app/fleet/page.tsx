@@ -3,6 +3,15 @@ import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideUsers, LucideBriefcase } from 'lucide-react'
 import Link from 'next/link'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Our Fleet',
+  description: 'Discover our premium fleet of luxury sedans, SUVs, and sprinters. Impeccably maintained vehicles for your perfect journey.',
+  openGraph: {
+    url: '/fleet',
+  },
+}
 
 export default async function FleetPage() {
   const supabase = await createClient()

@@ -2,6 +2,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideLeaf, LucideZap, LucideRecycle } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Sustainability',
+  description: 'Rihla Limo is dedicated to driving the future of sustainable luxury transportation with electric fleets and carbon offsetting.',
+  openGraph: {
+    url: '/sustainability',
+  },
+}
 
 export default async function SustainabilityPage() {
   const supabase = await createClient()

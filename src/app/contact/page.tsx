@@ -2,6 +2,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideMail, LucidePhone, LucideMapPin } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Contact Us',
+  description: 'Get in touch with Rihla Limo. Our 24/7 support team is here to assist with your booking and inquiries.',
+  openGraph: {
+    url: '/contact',
+  },
+}
 
 export default async function ContactPage() {
   const supabase = await createClient()

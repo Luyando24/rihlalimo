@@ -2,6 +2,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Accessibility',
+  description: 'Rihla Limo\'s commitment to digital and physical accessibility for all our clients.',
+  openGraph: {
+    url: '/accessibility',
+  },
+}
 
 export default async function AccessibilityPage() {
   const supabase = await createClient()

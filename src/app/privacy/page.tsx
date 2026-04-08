@@ -1,6 +1,15 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'Understand how Rihla Limo protects, manages, and secures your personal information.',
+  openGraph: {
+    url: '/privacy',
+  },
+}
 
 export default async function PrivacyPage() {
   const supabase = await createClient()

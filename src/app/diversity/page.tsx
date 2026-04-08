@@ -2,6 +2,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideUsers, LucideHeart, LucideGlobe } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Diversity & Inclusion',
+  description: 'Rihla Limo is committed to fostering an inclusive environment, promoting global perspectives, and supporting supplier diversity.',
+  openGraph: {
+    url: '/diversity',
+  },
+}
 
 export default async function DiversityPage() {
   const supabase = await createClient()

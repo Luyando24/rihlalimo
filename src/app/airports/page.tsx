@@ -3,6 +3,15 @@ import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { LucidePlane, LucideClock, LucideUserCheck } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Airport Transfers',
+  description: 'Stress-free luxury airport transfers. Enjoy real-time flight tracking, personalized meet & greet, and complimentary wait time.',
+  openGraph: {
+    url: '/airports',
+  },
+}
 
 export default async function AirportsPage() {
   const supabase = await createClient()

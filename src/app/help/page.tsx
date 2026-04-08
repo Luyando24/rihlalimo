@@ -3,6 +3,15 @@ import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { LucideHelpCircle, LucideMessageCircle, LucideFileText, LucidePhone } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Help Center',
+  description: 'How can we assist you today? Find answers to common questions about Rihla Limo or get in touch with our support team.',
+  openGraph: {
+    url: '/help',
+  },
+}
 
 export default async function HelpCenterPage() {
   const supabase = await createClient()

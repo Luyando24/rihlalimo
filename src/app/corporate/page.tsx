@@ -2,6 +2,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideBuilding, LucideFileText, LucideUsers } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Corporate Travel',
+  description: 'Streamline your business travel with our dedicated corporate accounts, centralized billing, and priority booking.',
+  openGraph: {
+    url: '/corporate',
+  },
+}
 
 export default async function CorporatePage() {
   const supabase = await createClient()

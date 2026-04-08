@@ -1,6 +1,17 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
+
+import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Newsroom',
+  description: 'Stay updated with the latest news, announcements, and press releases from Rihla Limo.',
+  openGraph: {
+    url: '/newsroom',
+  },
+}
 
 export default async function NewsroomPage() {
   const supabase = await createClient()
@@ -12,6 +23,12 @@ export default async function NewsroomPage() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     role = profile?.role
   }
+
+  // Fetch published news posts
+  const { data: posts } = await supabase
+    .from('news_posts')
+    .select('*')
+    .order('published_at', { ascending: false })
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -37,27 +54,30 @@ export default async function NewsroomPage() {
          <div className="mt-24">
             <h2 className="text-3xl font-bold mb-12 text-center">Latest Updates</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="p-8 bg-gray-50 rounded-xl">
-                    <div className="text-sm text-gray-500 mb-2">March 2024</div>
-                    <h3 className="text-xl font-bold mb-4">Fleet Expansion</h3>
-                    <p className="text-gray-600">
-                        Rihla Limo announces the addition of 50 new luxury vehicles to serve growing demand in metropolitan areas.
-                    </p>
-                </div>
-                <div className="p-8 bg-gray-50 rounded-xl">
-                    <div className="text-sm text-gray-500 mb-2">February 2024</div>
-                    <h3 className="text-xl font-bold mb-4">Sustainability Initiative</h3>
-                    <p className="text-gray-600">
-                        Launch of our eco-friendly fleet program featuring hybrid and electric luxury vehicles.
-                    </p>
-                </div>
-                <div className="p-8 bg-gray-50 rounded-xl">
-                    <div className="text-sm text-gray-500 mb-2">January 2024</div>
-                    <h3 className="text-xl font-bold mb-4">Technology Upgrade</h3>
-                    <p className="text-gray-600">
-                        New AI-powered dispatch system improves response times by 30% across all service areas.
-                    </p>
-                </div>
+                {posts && posts.length > 0 ? (
+                    posts.map((post: any) => (
+                        <Link href={`/newsroom/${post.slug}`} key={post.id} className="block group">
+                            <div className="p-8 bg-gray-50 rounded-xl h-full border border-transparent group-hover:border-gray-200 transition-all group-hover:shadow-sm">
+                                {post.image_url && (
+                                    <div className="mb-6 rounded-lg overflow-hidden h-40 bg-gray-200">
+                                        <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    </div>
+                                )}
+                                <div className="text-sm text-gray-500 mb-2">
+                                    {new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </div>
+                                <h3 className="text-xl font-bold mb-4 group-hover:text-gray-600 transition-colors">{post.title}</h3>
+                                <p className="text-gray-600 line-clamp-3">
+                                    {post.excerpt || post.content.substring(0, 150) + '...'}
+                                </p>
+                            </div>
+                        </Link>
+                    ))
+                ) : (
+                    <div className="col-span-full text-center text-gray-500 py-12">
+                        No news articles published yet. Check back soon!
+                    </div>
+                )}
             </div>
          </div>
       </div>

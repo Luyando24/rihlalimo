@@ -3,6 +3,15 @@ import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { LucideGlobe, LucideMapPin, LucideStar } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Global Cities',
+  description: 'Experience consistent, premium chauffeur services in major cities worldwide with Rihla Limo.',
+  openGraph: {
+    url: '/cities',
+  },
+}
 
 export default async function CitiesPage() {
   const supabase = await createClient()

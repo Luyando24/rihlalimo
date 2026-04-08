@@ -3,6 +3,15 @@ import { redirect } from 'next/navigation'
 import BookingWizard from '@/components/booking/BookingWizard'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Book a Ride',
+  description: 'Book your premium Rihla Limo chauffeur service online. Get an instant quote for airport transfers, hourly charter, or point-to-point travel.',
+  openGraph: {
+    url: '/book',
+  },
+}
 
 export default async function BookPage() {
   const supabase = await createClient()

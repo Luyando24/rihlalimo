@@ -2,6 +2,15 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideShieldCheck, LucideCar, LucideUserCheck } from 'lucide-react'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Safety Standards',
+  description: 'Your safety is our absolute priority. Discover our rigorous chauffeur background checks, 24/7 monitoring, and immaculate fleet standards.',
+  openGraph: {
+    url: '/safety',
+  },
+}
 
 export default async function SafetyPage() {
   const supabase = await createClient()

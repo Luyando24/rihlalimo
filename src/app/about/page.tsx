@@ -1,6 +1,15 @@
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'About Us',
+  description: 'Learn about Rihla Limo\'s commitment to luxury, safety, and providing the ultimate chauffeur experience worldwide.',
+  openGraph: {
+    url: '/about',
+  },
+}
 
 export default async function AboutPage() {
   const supabase = await createClient()
