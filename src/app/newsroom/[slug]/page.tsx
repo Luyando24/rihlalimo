@@ -110,12 +110,10 @@ export default async function NewsPostPage({ params }: Props) {
             </div>
           )}
 
-          <div className="prose prose-lg max-w-none text-gray-700">
-            {/* Note: In a production app, use a markdown parser or HTML sanitizer here */}
-            {post.content.split('\n').map((paragraph: string, index: number) => (
-              paragraph.trim() ? <p key={index} className="mb-6">{paragraph}</p> : null
-            ))}
-          </div>
+          <div 
+            className="prose prose-lg max-w-none text-gray-700"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         </article>
       </main>
 

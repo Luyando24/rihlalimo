@@ -32,7 +32,8 @@ import {
     LucidePlane,
     LucideEye,
     LucideEyeOff,
-    LucideNewspaper
+    LucideNewspaper,
+    LucideArrowLeft
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
@@ -62,7 +63,8 @@ import {
     addAdmin
 } from '@/app/admin/actions'
 import { createNewsPost, deleteNewsPost } from '@/app/admin/news-actions'
-import { getVehicleTypes } from '@/app/book/actions'
+import { createClient } from '@/utils/supabase/client'
+import RichTextEditor from './RichTextEditor'
 
 export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats, newsPosts = [] }: any) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -231,9 +233,12 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                         <SettingsView settings={settings} vehicleTypes={vehicleTypes} />
                     )}
                     {activeTab === 'newsroom' && (
-                        <NewsroomView posts={newsPosts} />
+                        <NewsroomView posts={newsPosts} setActiveTab={setActiveTab} />
                     )}
-                    {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings' && activeTab !== 'newsroom' && activeTab !== 'admins') && (
+                    {activeTab === 'newsroom_create' && (
+                        <CreateNewsPostView setActiveTab={setActiveTab} />
+                    )}
+                    {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings' && activeTab !== 'newsroom' && activeTab !== 'newsroom_create' && activeTab !== 'admins') && (
                         <div className="flex flex-col items-center justify-center h-[50vh] text-gray-400">
                             <LucideSettings size={48} className="mb-4 opacity-20" />
                             <p>This section is under development.</p>
@@ -2677,7 +2682,7 @@ function StatusBadge({ status }: { status: string }) {
     )
 }
 
-function NewsroomView({ posts = [] }: { posts: any[] }) {
+function NewsroomView({ posts = [], setActiveTab }: { posts: any[], setActiveTab: (tab: string) => void }) {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState({
@@ -2729,7 +2734,7 @@ function NewsroomView({ posts = [] }: { posts: any[] }) {
                     <p className="text-gray-500 mt-1">Create and manage news articles and announcements.</p>
                 </div>
                 <button
-                    onClick={() => setIsAddModalOpen(true)}
+                    onClick={() => setActiveTab('newsroom_create')}
                     className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm"
                 >
                     <LucidePlus size={16} /> Add Post
@@ -2777,94 +2782,186 @@ function NewsroomView({ posts = [] }: { posts: any[] }) {
                     </table>
                 </div>
             </div>
+        </div>
+    )
+}
 
-            {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-100">
-                            <h3 className="text-xl font-bold">Create News Post</h3>
-                            <button
-                                onClick={() => setIsAddModalOpen(false)}
-                                className="text-gray-400 hover:text-black transition-colors"
-                            >
-                                <LucideX size={24} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleCreatePost} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                                <input
-                                    required
-                                    type="text"
-                                    value={formData.title}
-                                    onChange={handleTitleChange}
-                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-                                    placeholder="e.g. Rihla Limo Expands Fleet"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL)</label>
-                                <input
-                                    required
-                                    type="text"
-                                    value={formData.slug}
-                                    onChange={e => setFormData({ ...formData, slug: e.target.value })}
-                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-                                    placeholder="e.g. rihla-limo-expands-fleet"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL (Optional)</label>
-                                <input
-                                    type="url"
-                                    value={formData.image_url}
-                                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-                                    placeholder="https://example.com/image.jpg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Excerpt (Short Description)</label>
-                                <textarea
-                                    rows={2}
-                                    value={formData.excerpt}
-                                    onChange={e => setFormData({ ...formData, excerpt: e.target.value })}
-                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-                                    placeholder="A brief summary of the article..."
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Content (Markdown/HTML supported)</label>
-                                <textarea
-                                    required
-                                    rows={8}
-                                    value={formData.content}
-                                    onChange={e => setFormData({ ...formData, content: e.target.value })}
-                                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
-                                    placeholder="Write your full article here..."
-                                />
-                            </div>
+function CreateNewsPostView({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+    const [isLoading, setIsLoading] = useState(false)
+    const [uploadingImage, setUploadingImage] = useState(false)
+    const [formData, setFormData] = useState({
+        title: '',
+        slug: '',
+        excerpt: '',
+        content: '',
+        image_url: ''
+    })
 
-                            <div className="pt-4 flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAddModalOpen(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
-                                >
-                                    {isLoading ? 'Publishing...' : 'Publish Post'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+    const supabase = createClient()
+
+    const handleCreatePost = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsLoading(true)
+        
+        const form = new FormData()
+        Object.entries(formData).forEach(([key, value]) => form.append(key, value))
+        
+        const result = await createNewsPost(form)
+        setIsLoading(false)
+        
+        if (result.success) {
+            setActiveTab('newsroom')
+        } else {
+            alert(result.error || 'Failed to create post')
+        }
+    }
+
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const title = e.target.value
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+        setFormData({ ...formData, title, slug })
+    }
+
+    const handleContentChange = (content: string) => {
+        // Auto-generate excerpt from plain text content if excerpt is empty
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = content
+        const plainText = tempDiv.textContent || tempDiv.innerText || ''
+        
+        setFormData(prev => ({ 
+            ...prev, 
+            content,
+            excerpt: prev.excerpt ? prev.excerpt : (plainText.length > 150 ? plainText.substring(0, 150) + '...' : plainText)
+        }))
+    }
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return
+        const file = e.target.files[0]
+        
+        setUploadingImage(true)
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+        const filePath = `${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+            .from('news-images')
+            .upload(filePath, file)
+
+        if (uploadError) {
+            alert('Error uploading image: ' + uploadError.message)
+            setUploadingImage(false)
+            return
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('news-images')
+            .getPublicUrl(filePath)
+
+        setFormData({ ...formData, image_url: publicUrl })
+        setUploadingImage(false)
+    }
+
+    return (
+        <div className="space-y-6 max-w-4xl mx-auto">
+            <div className="flex items-center gap-4">
+                <button 
+                    onClick={() => setActiveTab('newsroom')}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+                >
+                    <LucideArrowLeft size={20} />
+                </button>
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Create News Post</h2>
+                    <p className="text-gray-500 mt-1">Write a new article for the newsroom.</p>
                 </div>
-            )}
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm p-6 md:p-8">
+                <form onSubmit={handleCreatePost} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Title</label>
+                            <input
+                                required
+                                type="text"
+                                value={formData.title}
+                                onChange={handleTitleChange}
+                                className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+                                placeholder="e.g. Rihla Limo Expands Fleet"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Slug (URL)</label>
+                            <input
+                                required
+                                type="text"
+                                value={formData.slug}
+                                onChange={e => setFormData({ ...formData, slug: e.target.value })}
+                                className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+                                placeholder="e.g. rihla-limo-expands-fleet"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Featured Image</label>
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                                <label className={`flex justify-center w-full px-4 py-8 border-2 border-dashed rounded-lg transition-colors ${formData.image_url ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'} cursor-pointer`}>
+                                    <span className="flex items-center space-x-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className={`w-6 h-6 ${formData.image_url ? 'text-green-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                        </svg>
+                                        <span className={`font-medium ${formData.image_url ? 'text-green-600' : 'text-gray-600'}`}>
+                                            {uploadingImage ? 'Uploading...' : formData.image_url ? 'Image Uploaded Successfully' : 'Drop files to Attach, or browse'}
+                                        </span>
+                                    </span>
+                                    <input type="file" name="file_upload" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+                                </label>
+                            </div>
+                            {formData.image_url && (
+                                <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-gray-200">
+                                    <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Content</label>
+                        <RichTextEditor content={formData.content} onChange={handleContentChange} />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Excerpt (Short Description)</label>
+                        <textarea
+                            rows={3}
+                            value={formData.excerpt}
+                            onChange={e => setFormData({ ...formData, excerpt: e.target.value })}
+                            className="w-full border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+                            placeholder="A brief summary of the article... (Auto-generated from content if left blank)"
+                        />
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-100 flex justify-end gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('newsroom')}
+                            className="px-6 py-3 border border-gray-200 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isLoading || uploadingImage || !formData.content}
+                            className="px-8 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {isLoading ? 'Publishing...' : 'Publish Post'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }
