@@ -6,14 +6,14 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Newsroom',
+  title: 'News',
   description: 'Stay updated with the latest news, announcements, and press releases from Rihla Limo.',
   openGraph: {
     url: '/newsroom',
   },
 }
 
-export default async function NewsroomPage() {
+export default async function NewsPage() {
   const supabase = await createClient()
   const { data: userResponse } = await supabase.auth.getUser()
   const user = userResponse?.user
@@ -35,7 +35,7 @@ export default async function NewsroomPage() {
       <Navbar user={user} role={role} />
       
       <div className="pt-32 pb-20 px-6 lg:px-16 container mx-auto">
-         <h1 className="text-4xl md:text-5xl font-bold mb-8">Newsroom</h1>
+         <h1 className="text-4xl md:text-5xl font-bold mb-8">News</h1>
          
          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
              <div>
@@ -43,11 +43,11 @@ export default async function NewsroomPage() {
                     Stay updated with the latest news, announcements, and developments from Rihla Limo.
                  </p>
                  <p className="text-gray-600 leading-relaxed mb-6">
-                    From new service launches to industry insights, our newsroom keeps you informed about our journey in redefining luxury transportation.
+                    From new service launches to industry insights, our news section keeps you informed about our journey in redefining luxury transportation.
                  </p>
              </div>
              <div className="bg-gray-100 rounded-2xl h-[400px] flex items-center justify-center">
-                 <span className="text-gray-400">Newsroom Image</span>
+                 <span className="text-gray-400">News Image</span>
              </div>
          </div>
 

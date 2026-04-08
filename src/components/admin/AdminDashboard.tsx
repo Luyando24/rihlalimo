@@ -61,7 +61,7 @@ import {
     deleteUser,
     addAdmin
 } from '@/app/admin/actions'
-import { createNewsPost, deleteNewsPost } from '@/app/admin/news-actions'
+import { createNewsPost, deleteNewsPost, updateNewsPost } from '@/app/admin/news-actions'
 import { createClient } from '@/utils/supabase/client'
 import RichTextEditor from './RichTextEditor'
 
@@ -69,6 +69,7 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('dashboard')
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+    const [editingNewsPost, setEditingNewsPost] = useState<any>(null)
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
 
@@ -145,7 +146,7 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                         />
                         <NavItem
                             icon={<LucideNewspaper size={20} />}
-                            label="Newsroom"
+                            label="News"
                             active={activeTab === 'newsroom'}
                             onClick={() => { setActiveTab('newsroom'); setIsSidebarOpen(false); }}
                         />
@@ -232,10 +233,10 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                         <SettingsView settings={settings} vehicleTypes={vehicleTypes} />
                     )}
                     {activeTab === 'newsroom' && (
-                        <NewsroomView posts={newsPosts} setActiveTab={setActiveTab} />
+                        <NewsroomView posts={newsPosts} setActiveTab={setActiveTab} setEditingPost={setEditingNewsPost} />
                     )}
                     {activeTab === 'newsroom_create' && (
-                        <CreateNewsPostView setActiveTab={setActiveTab} />
+                        <CreateNewsPostView setActiveTab={setActiveTab} editingPost={editingNewsPost} />
                     )}
                     {(activeTab !== 'dashboard' && activeTab !== 'bookings' && activeTab !== 'drivers' && activeTab !== 'customers' && activeTab !== 'customer_history' && activeTab !== 'fleet' && activeTab !== 'settings' && activeTab !== 'newsroom' && activeTab !== 'newsroom_create' && activeTab !== 'admins') && (
                         <div className="flex flex-col items-center justify-center h-[50vh] text-gray-400">
@@ -2681,35 +2682,7 @@ function StatusBadge({ status }: { status: string }) {
     )
 }
 
-function NewsroomView({ posts = [], setActiveTab }: { posts: any[], setActiveTab: (tab: string) => void }) {
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
-    const [formData, setFormData] = useState({
-        title: '',
-        slug: '',
-        excerpt: '',
-        content: '',
-        image_url: ''
-    })
-
-    const handleCreatePost = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setIsLoading(true)
-        
-        const form = new FormData()
-        Object.entries(formData).forEach(([key, value]) => form.append(key, value))
-        
-        const result = await createNewsPost(form)
-        setIsLoading(false)
-        
-        if (result.success) {
-            setIsAddModalOpen(false)
-            setFormData({ title: '', slug: '', excerpt: '', content: '', image_url: '' })
-        } else {
-            alert(result.error || 'Failed to create post')
-        }
-    }
-
+function NewsroomView({ posts = [], setActiveTab, setEditingPost }: { posts: any[], setActiveTab: (tab: string) => void, setEditingPost: (post: any) => void }) {
     const handleDeletePost = async (id: string) => {
         if (!confirm('Are you sure you want to delete this news post?')) return
         const result = await deleteNewsPost(id)
@@ -2718,22 +2691,15 @@ function NewsroomView({ posts = [], setActiveTab }: { posts: any[], setActiveTab
         }
     }
 
-    // Auto-generate slug from title
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const title = e.target.value
-        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
-        setFormData({ ...formData, title, slug })
-    }
-
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Newsroom Management</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">News Management</h2>
                     <p className="text-gray-500 mt-1">Create and manage news articles and announcements.</p>
                 </div>
                 <button
-                    onClick={() => setActiveTab('newsroom_create')}
+                    onClick={() => { setEditingPost(null); setActiveTab('newsroom_create'); }}
                     className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-sm"
                 >
                     <LucidePlus size={16} /> Add Post
@@ -2761,6 +2727,13 @@ function NewsroomView({ posts = [], setActiveTab }: { posts: any[], setActiveTab
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <button
+                                            onClick={() => { setEditingPost(post); setActiveTab('newsroom_create'); }}
+                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors ml-2"
+                                            title="Edit Post"
+                                        >
+                                            <LucideEdit2 size={16} />
+                                        </button>
+                                        <button
                                             onClick={() => handleDeletePost(post.id)}
                                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-2"
                                             title="Delete Post"
@@ -2785,15 +2758,15 @@ function NewsroomView({ posts = [], setActiveTab }: { posts: any[], setActiveTab
     )
 }
 
-function CreateNewsPostView({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+function CreateNewsPostView({ setActiveTab, editingPost }: { setActiveTab: (tab: string) => void, editingPost: any }) {
     const [isLoading, setIsLoading] = useState(false)
     const [uploadingImage, setUploadingImage] = useState(false)
     const [formData, setFormData] = useState({
-        title: '',
-        slug: '',
-        excerpt: '',
-        content: '',
-        image_url: ''
+        title: editingPost?.title || '',
+        slug: editingPost?.slug || '',
+        excerpt: editingPost?.excerpt || '',
+        content: editingPost?.content || '',
+        image_url: editingPost?.image_url || ''
     })
 
     const supabase = createClient()
@@ -2805,13 +2778,19 @@ function CreateNewsPostView({ setActiveTab }: { setActiveTab: (tab: string) => v
         const form = new FormData()
         Object.entries(formData).forEach(([key, value]) => form.append(key, value))
         
-        const result = await createNewsPost(form)
+        let result;
+        if (editingPost) {
+            result = await updateNewsPost(editingPost.id, form)
+        } else {
+            result = await createNewsPost(form)
+        }
+        
         setIsLoading(false)
         
         if (result.success) {
             setActiveTab('newsroom')
         } else {
-            alert(result.error || 'Failed to create post')
+            alert(result.error || 'Failed to save post')
         }
     }
 
@@ -2871,8 +2850,8 @@ function CreateNewsPostView({ setActiveTab }: { setActiveTab: (tab: string) => v
                     <LucideArrowLeft size={20} />
                 </button>
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Create News Post</h2>
-                    <p className="text-gray-500 mt-1">Write a new article for the newsroom.</p>
+                    <h2 className="text-2xl font-bold text-gray-900">{editingPost ? 'Edit News Post' : 'Create News Post'}</h2>
+                    <p className="text-gray-500 mt-1">{editingPost ? 'Update the details of your news article.' : 'Write a new article for the news.'}</p>
                 </div>
             </div>
 
@@ -2956,7 +2935,7 @@ function CreateNewsPostView({ setActiveTab }: { setActiveTab: (tab: string) => v
                             disabled={isLoading || uploadingImage || !formData.content}
                             className="px-8 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
-                            {isLoading ? 'Publishing...' : 'Publish Post'}
+                            {isLoading ? 'Saving...' : (editingPost ? 'Update Post' : 'Publish Post')}
                         </button>
                     </div>
                 </form>

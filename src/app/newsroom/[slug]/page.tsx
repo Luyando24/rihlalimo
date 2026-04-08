@@ -79,7 +79,7 @@ export default async function NewsPostPage({ params }: Props) {
       
       <main className="pt-32 pb-24 px-6 lg:px-16 container mx-auto max-w-4xl">
         <Link href="/newsroom" className="inline-flex items-center text-gray-500 hover:text-black transition-colors mb-8 text-sm font-medium">
-          <LucideArrowLeft size={16} className="mr-2" /> Back to Newsroom
+          <LucideArrowLeft size={16} className="mr-2" /> Back to News
         </Link>
         
         <article>
