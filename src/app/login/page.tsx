@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { login, signup, resetPasswordAction, resendVerificationAction } from './actions'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -12,6 +13,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [isUnconfirmed, setIsUnconfirmed] = useState(false)
   const [resending, setResending] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get redirect param from URL if it exists
+    const urlParams = new URLSearchParams(window.location.search)
+    const redirectParam = urlParams.get('redirect')
+    if (redirectParam) {
+      setRedirectUrl(redirectParam)
+    }
+  }, [])
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -56,6 +68,9 @@ export default function LoginPage() {
 
     const formData = new FormData()
     formData.append('email', email)
+    if (redirectUrl) {
+      formData.append('redirect', redirectUrl)
+    }
 
     const result = await resendVerificationAction(formData)
 
@@ -83,6 +98,8 @@ export default function LoginPage() {
           </h2>
 
           <form action={handleSubmit} className="space-y-4">
+            {redirectUrl && <input type="hidden" name="redirect" value={redirectUrl} />}
+
             {!isLogin && !isForgotPassword && (
               <input
                 name="fullName"
@@ -112,13 +129,22 @@ export default function LoginPage() {
             />
 
             {!isForgotPassword && (
-              <input
-                name="password"
-                type="password"
-                required
-                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                placeholder="Password"
-              />
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             )}
 
             {isLogin && !isForgotPassword && (

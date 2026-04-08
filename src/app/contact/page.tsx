@@ -1,4 +1,5 @@
 import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideMail, LucidePhone, LucideMapPin } from 'lucide-react'
 
@@ -14,7 +15,7 @@ export default async function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-black">
       <Navbar user={user} role={role} />
       
       <div className="pt-32 pb-20 px-6 lg:px-16 container mx-auto">
@@ -88,6 +89,7 @@ export default async function ContactPage() {
             </div>
          </div>
       </div>
+      <Footer />
     </div>
   )
 }

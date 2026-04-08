@@ -55,7 +55,7 @@ export async function driverSignup(formData: FormData): Promise<{ error?: string
     const { getVerificationEmailTemplate } = await import('@/utils/emailTemplates')
     const { sendEmail } = await import('@/utils/email')
 
-    const verificationUrl = linkData.properties.action_link
+    const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?token_hash=${linkData.properties.hashed_token}&type=${linkData.properties.verification_type}&next=/drive/onboarding`
     const html = getVerificationEmailTemplate(fullName, verificationUrl)
 
     await sendEmail({

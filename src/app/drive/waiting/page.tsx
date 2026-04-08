@@ -3,7 +3,7 @@ import { LucideClock } from 'lucide-react'
 
 export default function WaitingForApprovalPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 text-black flex flex-col items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-md w-full text-center">
         <div className="w-16 h-16 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
           <LucideClock size={32} />

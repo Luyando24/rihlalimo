@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo } from 'lucide-react'
-import { getVehicleTypes, getQuoteAction, createBookingAction } from '@/app/book/actions'
+import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight } from 'lucide-react'
+import { getVehicleTypes, getQuoteAction, createBookingAction, initializePaymentAction } from '@/app/book/actions'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
 import { useSearchParams } from 'next/navigation'
 import { Elements } from '@stripe/react-stripe-js'
@@ -78,6 +78,36 @@ export default function BookingWizard({ user, profile }: any) {
     fetchVehicles()
   }, [])
 
+  // Restore saved booking state if returning from login
+  useEffect(() => {
+    const savedBooking = localStorage.getItem('rihla_pending_booking')
+    if (savedBooking) {
+      try {
+        const parsed = JSON.parse(savedBooking)
+        if (parsed.formData && parsed.step) {
+          setFormData({
+            ...parsed.formData,
+            passengerName: parsed.formData.passengerName || profile?.full_name || user?.user_metadata?.full_name || '',
+            passengerPhone: parsed.formData.passengerPhone || profile?.phone || user?.user_metadata?.phone || ''
+          })
+          setStep(parsed.step)
+          
+          // Re-fetch quote if restoring to step 4
+          if (parsed.step === 4) {
+            setLoadingQuote(true)
+            getQuoteAction(parsed.formData).then(res => {
+              if (res.success) setPriceQuote(res.quote)
+              setLoadingQuote(false)
+            }).catch(() => setLoadingQuote(false))
+          }
+        }
+        localStorage.removeItem('rihla_pending_booking')
+      } catch (e) {
+        console.error('Failed to restore booking state', e)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     const initialPickup = searchParams.get('pickup') || ''
     const initialDropoff = searchParams.get('dropoff') || ''
@@ -136,6 +166,38 @@ export default function BookingWizard({ user, profile }: any) {
       }))
     }, () => { }, { enableHighAccuracy: true, maximumAge: 0 })
   }, [isLoaded])
+
+  const getPickupAutoOptions = () => {
+    let types = ['geocode', 'establishment'];
+    
+    if (formData.serviceType === 'airport_pickup') {
+      types = ['airport'];
+    } else if (formData.serviceType === 'point_to_point' || formData.serviceType === 'hourly' || formData.serviceType === 'airport_dropoff') {
+      // In a strict implementation we could try to exclude airports, but Google Maps Autocomplete
+      // doesn't have an "exclude" filter. Instead we focus on address types.
+      types = ['address', 'establishment'];
+    }
+
+    return {
+      ...autoOptions,
+      types
+    }
+  }
+
+  const getDropoffAutoOptions = () => {
+    let types = ['geocode', 'establishment'];
+    
+    if (formData.serviceType === 'airport_dropoff') {
+      types = ['airport'];
+    } else if (formData.serviceType === 'point_to_point' || formData.serviceType === 'airport_pickup') {
+      types = ['address', 'establishment'];
+    }
+
+    return {
+      ...autoOptions,
+      types
+    }
+  }
 
   const [pickupAutocomplete, setPickupAutocomplete] = useState<google.maps.places.Autocomplete | null>(null)
   const [dropoffAutocomplete, setDropoffAutocomplete] = useState<google.maps.places.Autocomplete | null>(null)
@@ -313,6 +375,14 @@ export default function BookingWizard({ user, profile }: any) {
         }
       }
 
+      // Point to Point specific validation
+      if (formData.serviceType === 'point_to_point') {
+        const isAirport = (loc: string) => loc.toLowerCase().includes('airport') || loc.toLowerCase().includes('intl') || loc.toLowerCase().includes('international')
+        if (isAirport(formData.pickupLocation) || isAirport(formData.dropoffLocation)) {
+          newErrors.serviceType = 'Please select Airport Transfer for airport routes'
+        }
+      }
+
       // Airport specific validation
       if (formData.serviceType === 'airport_pickup') {
         if (!formData.airline.trim()) newErrors.airline = 'Airline is required for airport pickups'
@@ -349,7 +419,24 @@ export default function BookingWizard({ user, profile }: any) {
       formData.time = timeStr
     }
 
-    if (!validateStep(step)) return
+    if (!validateStep(step)) {
+      // Need to re-evaluate the state because setState in validateStep is asynchronous
+      const validationErrors = {} as Record<string, string>;
+      
+      // Duplicate Point to Point specific validation here to catch it immediately
+      if (step === 3 && formData.serviceType === 'point_to_point') {
+        const isAirport = (loc: string) => loc.toLowerCase().includes('airport') || loc.toLowerCase().includes('intl') || loc.toLowerCase().includes('international')
+        if (isAirport(formData.pickupLocation) || isAirport(formData.dropoffLocation)) {
+          validationErrors.serviceType = 'Please select Airport Transfer for airport routes'
+        }
+      }
+
+      if (validationErrors.serviceType) {
+        setErrors(validationErrors)
+        setStep(2) // Jump back to service selection if it's the wrong type
+      }
+      return
+    }
 
     if (step === 3) {
       // Calculate price when going to step 4
@@ -398,46 +485,100 @@ export default function BookingWizard({ user, profile }: any) {
       return
     }
 
+    if (!user) {
+      // Save state to localStorage so we can restore it after login
+      localStorage.setItem('rihla_pending_booking', JSON.stringify({
+        formData,
+        step: 4
+      }))
+      // Redirect to login page and pass a redirect parameter
+      window.location.href = '/login?redirect=/book'
+      return
+    }
+
     setLoadingBooking(true)
-    const result = await createBookingAction(formData)
+    const result = await initializePaymentAction(formData)
     setLoadingBooking(false)
 
     if (result.success) {
       setBookingResult(result)
       setStep(5)
     } else {
-      alert(result.error || 'Booking failed')
+      alert(result.error || 'Payment initialization failed')
+    }
+  }
+
+  const handlePaymentSuccess = async () => {
+    setLoadingBooking(true)
+    const result = await createBookingAction(formData)
+    setLoadingBooking(false)
+
+    if (result.success) {
+      setBookingResult((prev: any) => ({ ...prev, bookingId: result.bookingId, message: result.message }))
+      setStep(6)
+    } else {
+      alert(result.error || 'Failed to finalize booking after payment. Please contact support.')
     }
   }
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+      {/* Top Navigation Arrows */}
+      {step < 5 && (
+        <div className="bg-white border-b border-gray-100 p-4 flex justify-between items-center">
+          <button 
+            onClick={prevStep} 
+            disabled={step === 1} 
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <LucideArrowLeft size={16} /> Back
+          </button>
+          <span className="font-bold text-lg tracking-tight">Book Your Ride</span>
+          <button 
+            onClick={nextStep} 
+            disabled={step >= 4} 
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Next <LucideArrowRight size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div className="bg-white border-b border-gray-100 p-6">
         <div className="flex justify-between items-center text-sm font-medium text-gray-500">
-          <div className={`flex items-center ${step >= 1 ? 'text-black' : ''}`}>
+          <div 
+            onClick={() => { if (step > 1) setStep(1) }}
+            className={`flex items-center ${step >= 1 ? 'text-black' : ''} ${step > 1 ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''}`}
+          >
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 1 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>1</span>
-            Vehicle
+            <span className="hidden md:inline">Vehicle</span>
           </div>
-          <div className={`w-12 h-0.5 ${step >= 2 ? 'bg-black' : 'bg-gray-300'}`}></div>
-          <div className={`flex items-center ${step >= 2 ? 'text-black' : ''}`}>
+          <div className={`flex-1 mx-2 h-0.5 ${step >= 2 ? 'bg-black' : 'bg-gray-300'}`}></div>
+          <div 
+            onClick={() => { if (step > 2) setStep(2) }}
+            className={`flex items-center ${step >= 2 ? 'text-black' : ''} ${step > 2 ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''}`}
+          >
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 2 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>2</span>
-            Service
+            <span className="hidden md:inline">Service</span>
           </div>
-          <div className={`w-12 h-0.5 ${step >= 3 ? 'bg-black' : 'bg-gray-300'}`}></div>
-          <div className={`flex items-center ${step >= 3 ? 'text-black' : ''}`}>
+          <div className={`flex-1 mx-2 h-0.5 ${step >= 3 ? 'bg-black' : 'bg-gray-300'}`}></div>
+          <div 
+            onClick={() => { if (step > 3) setStep(3) }}
+            className={`flex items-center ${step >= 3 ? 'text-black' : ''} ${step > 3 ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''}`}
+          >
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 3 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>3</span>
-            Details
+            <span className="hidden md:inline">Details</span>
           </div>
-          <div className={`w-12 h-0.5 ${step >= 4 ? 'bg-black' : 'bg-gray-300'}`}></div>
+          <div className={`flex-1 mx-2 h-0.5 ${step >= 4 ? 'bg-black' : 'bg-gray-300'}`}></div>
           <div className={`flex items-center ${step >= 4 ? 'text-black' : ''}`}>
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 4 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>4</span>
-            Summary
+            <span className="hidden md:inline">Summary</span>
           </div>
-          <div className={`w-12 h-0.5 ${step >= 5 ? 'bg-black' : 'bg-gray-300'}`}></div>
+          <div className={`flex-1 mx-2 h-0.5 ${step >= 5 ? 'bg-black' : 'bg-gray-300'}`}></div>
           <div className={`flex items-center ${step >= 5 ? 'text-black' : ''}`}>
             <span className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mr-2 ${step >= 5 ? 'border-black bg-black text-white' : 'border-gray-300'}`}>5</span>
-            Payment
+            <span className="hidden md:inline">Payment</span>
           </div>
         </div>
       </div>
@@ -502,6 +643,12 @@ export default function BookingWizard({ user, profile }: any) {
           <div className="space-y-6">
             <h2 className="text-2xl font-light mb-6 text-black">Select Service Type</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {errors.serviceType && (
+                <div className="md:col-span-2 p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center mb-2">
+                  <LucideInfo size={18} className="mr-2" />
+                  {errors.serviceType}
+                </div>
+              )}
               <ServiceCard
                 title="Point-to-Point"
                 description="Direct transfer between two locations"
@@ -546,7 +693,7 @@ export default function BookingWizard({ user, profile }: any) {
                   <LucideMapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400 z-10" />
                   {isLoaded ? (
                     <Autocomplete
-                      options={autoOptions}
+                      options={getPickupAutoOptions()}
                       onLoad={onPickupLoad}
                       onPlaceChanged={onPickupPlaceChanged}
                     >
@@ -598,7 +745,7 @@ export default function BookingWizard({ user, profile }: any) {
                     <LucideMapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400 z-10" />
                     {isLoaded ? (
                       <Autocomplete
-                        options={autoOptions}
+                        options={getDropoffAutoOptions()}
                         onLoad={onDropoffLoad}
                         onPlaceChanged={onDropoffPlaceChanged}
                       >
@@ -850,8 +997,17 @@ export default function BookingWizard({ user, profile }: any) {
                   </>
                 ) : (
                   <>
-                    <LucideCreditCard size={18} />
-                    Proceed to Payment
+                    {!user ? (
+                      <>
+                        <LucideUsers size={18} />
+                        Login to Continue
+                      </>
+                    ) : (
+                      <>
+                        <LucideCreditCard size={18} />
+                        Proceed to Payment
+                      </>
+                    )}
                   </>
                 )}
               </button>
@@ -868,14 +1024,22 @@ export default function BookingWizard({ user, profile }: any) {
                 <CheckoutForm
                   clientSecret={bookingResult.clientSecret}
                   amount={priceQuote?.price || 0}
-                  onSuccess={() => setStep(6)}
+                  onSuccess={handlePaymentSuccess}
                 />
               </Elements>
             ) : (
               <div className="text-center">
                 <p className="text-gray-600 mb-6">Payment step is simulated for development.</p>
-                <button onClick={() => setStep(6)} className="btn-primary w-full py-3">
-                  Simulate Payment Success
+                <button onClick={handlePaymentSuccess} disabled={loadingBooking} className="btn-primary w-full py-3 flex justify-center items-center gap-2 disabled:opacity-50">
+                  {loadingBooking ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Finalizing Booking...
+                    </>
+                  ) : 'Simulate Payment Success'}
                 </button>
               </div>
             )}

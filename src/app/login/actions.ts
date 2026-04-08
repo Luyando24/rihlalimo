@@ -11,6 +11,7 @@ export async function login(formData: FormData): Promise<{ error?: string; messa
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const redirectUrl = formData.get('redirect') as string
 
   const { data: { user }, error } = await supabase.auth.signInWithPassword({
     email,
@@ -33,7 +34,9 @@ export async function login(formData: FormData): Promise<{ error?: string; messa
 
     revalidatePath('/', 'layout')
 
-    if (profile?.role === 'admin') {
+    if (redirectUrl && redirectUrl.startsWith('/')) {
+      redirect(redirectUrl)
+    } else if (profile?.role === 'admin') {
       redirect('/admin')
     } else if (profile?.role === 'driver') {
       redirect('/driver')
@@ -53,6 +56,7 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
   const password = formData.get('password') as string
   const fullName = formData.get('fullName') as string
   const phone = formData.get('phone') as string
+  const redirectUrl = formData.get('redirect') as string
 
   // 1. Create user with standard Supabase client (this reserves the email)
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -77,12 +81,13 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
     await adminClient.from('profiles').update({ phone: phone }).eq('id', signUpData.user.id)
 
     // 3. Generate verification link and send via SMTP
+    const nextPath = redirectUrl && redirectUrl.startsWith('/') ? redirectUrl : '/dashboard'
     const { data: linkData, error: linkError } = await adminAuth.generateLink({
       type: 'signup',
       email,
       password,
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/dashboard`
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=${nextPath}`
       }
     })
 
@@ -95,7 +100,7 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
     const { getVerificationEmailTemplate } = await import('@/utils/emailTemplates')
     const { sendEmail } = await import('@/utils/email')
 
-    const verificationUrl = linkData.properties.action_link
+    const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?token_hash=${linkData.properties.hashed_token}&type=${linkData.properties.verification_type}&next=${nextPath}`
     const html = getVerificationEmailTemplate(fullName, verificationUrl)
 
     await sendEmail({
@@ -113,6 +118,7 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
 export async function resendVerificationAction(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean }> {
   const adminAuth = createAdminClient().auth.admin
   const email = formData.get('email') as string
+  const redirectUrl = formData.get('redirect') as string
 
   if (!email) return { error: 'Email is required.' }
 
@@ -127,11 +133,12 @@ export async function resendVerificationAction(formData: FormData): Promise<{ er
     return { success: true, message: 'If an account exists with this email, a new verification link has been sent.' }
   }
 
+  const nextPath = redirectUrl && redirectUrl.startsWith('/') ? redirectUrl : '/dashboard'
   const { data: linkData, error: linkError } = await adminAuth.generateLink({
     type: 'magiclink',
     email,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=/dashboard`
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?next=${nextPath}`
     }
   })
 
@@ -143,7 +150,7 @@ export async function resendVerificationAction(formData: FormData): Promise<{ er
   const { sendEmail } = await import('@/utils/email')
 
   const fullName = user.user_metadata?.full_name || 'there'
-  const verificationUrl = linkData.properties.action_link
+  const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?token_hash=${linkData.properties.hashed_token}&type=${linkData.properties.verification_type}&next=${nextPath}`
   const html = getVerificationEmailTemplate(fullName, verificationUrl)
 
   const emailResult = await sendEmail({

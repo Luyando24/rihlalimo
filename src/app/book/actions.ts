@@ -171,7 +171,7 @@ export async function getQuoteAction(data: {
   }
 }
 
-export async function createBookingAction(bookingData: any) {
+export async function initializePaymentAction(bookingData: any) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -189,6 +189,56 @@ export async function createBookingAction(bookingData: any) {
   const amountInCents = Math.round(quoteResult.quote.price * 100)
 
   try {
+    // Initialize Payment (Mock or Real)
+    const isStripeEnabled = process.env.STRIPE_SECRET_KEY && 
+                           !process.env.STRIPE_SECRET_KEY.includes('your-stripe') && 
+                           process.env.STRIPE_SECRET_KEY.startsWith('sk_');
+
+    if (isStripeEnabled) {
+        const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: 'usd',
+        automatic_payment_methods: { enabled: true },
+        metadata: {
+            customer_id: user.id
+        }
+        })
+
+        return {
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        message: 'Payment initialized.'
+        }
+    } else {
+        // Mock success for development without Stripe
+        return {
+            success: true,
+            message: 'Mock payment initialized.'
+        }
+    }
+
+  } catch (error: any) {
+    console.error('Payment initialization error:', error)
+    return { success: false, error: error.message || 'Payment initialization failed' }
+  }
+}
+
+export async function createBookingAction(bookingData: any) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    return { success: false, error: 'User not authenticated' }
+  }
+
+  // 1. Re-calculate price server-side
+  const quoteResult = await getQuoteAction(bookingData)
+  
+  if (!quoteResult.success || !quoteResult.quote) {
+    return { success: false, error: 'Could not calculate price' }
+  }
+
+  try {
     // 2. Create Booking Record
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -202,8 +252,8 @@ export async function createBookingAction(bookingData: any) {
         distance_km_estimated: quoteResult.quote.distanceKm,
         duration_minutes_estimated: quoteResult.quote.durationMinutes,
         total_price_calculated: quoteResult.quote.price,
-        status: 'pending',
-        payment_status: 'unpaid',
+        status: 'confirmed', // Directly confirmed since payment is done
+        payment_status: 'paid', // Mark as paid
         flight_number: bookingData.flightNumber || null,
         airline: bookingData.airline || null,
         meet_and_greet: bookingData.meetAndGreet || false,
@@ -224,7 +274,6 @@ export async function createBookingAction(bookingData: any) {
       await sendAdminNewBookingEmail(booking.id)
     } catch (emailError) {
       console.error('Failed to send admin notification email:', emailError)
-      // Continue execution - don't fail the booking just because email failed
     }
 
     // Send email notification to customer
@@ -234,40 +283,14 @@ export async function createBookingAction(bookingData: any) {
       console.error('Failed to send customer confirmation email:', emailError)
     }
 
-    // 3. Initialize Payment (Mock or Real)
-    // Temporarily disabled Stripe as requested or if key is placeholder
-    const isStripeEnabled = process.env.STRIPE_SECRET_KEY && 
-                           !process.env.STRIPE_SECRET_KEY.includes('your-stripe') && 
-                           process.env.STRIPE_SECRET_KEY.startsWith('sk_');
-
-    if (isStripeEnabled) {
-        const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountInCents,
-        currency: 'usd',
-        automatic_payment_methods: { enabled: true },
-        metadata: {
-            booking_id: booking.id,
-            customer_id: user.id
-        }
-        })
-
-        return {
-        success: true,
-        clientSecret: paymentIntent.client_secret,
-        bookingId: booking.id,
-        message: 'Booking created, proceed to payment.'
-        }
-    } else {
-        // Mock success for development without Stripe
-        return {
-            success: true,
-            bookingId: booking.id,
-            message: 'Booking created successfully (Payment integration pending).'
-        }
+    return {
+      success: true,
+      bookingId: booking.id,
+      message: 'Booking created successfully.'
     }
 
   } catch (error: any) {
-    console.error('Booking/Payment error:', error)
+    console.error('Booking finalization error:', error)
     return { success: false, error: error.message || 'Booking failed' }
   }
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucidePlane, LucideMapPin, LucideClock, LucideCalendar } from 'lucide-react'
 
@@ -15,7 +16,7 @@ export default async function ServicesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-black">
       <Navbar user={user} role={role} />
       
       {/* Header */}
@@ -112,6 +113,7 @@ export default async function ServicesPage() {
          </div>
 
       </div>
+      <Footer />
     </div>
   )
 }

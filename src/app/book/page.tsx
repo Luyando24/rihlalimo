@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import BookingWizard from '@/components/booking/BookingWizard'
 import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 
 export default async function BookPage() {
   const supabase = await createClient()
@@ -29,6 +30,7 @@ export default async function BookPage() {
           <BookingWizard user={user} profile={profile} />
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

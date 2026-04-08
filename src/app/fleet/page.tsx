@@ -1,4 +1,5 @@
 import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideUsers, LucideBriefcase } from 'lucide-react'
 import Link from 'next/link'
@@ -17,7 +18,7 @@ export default async function FleetPage() {
   const { data: vehicleTypes } = await supabase.from('vehicle_types').select('*')
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-black">
       <Navbar user={user} role={role} />
       <div className="pt-24 pb-12 px-6 lg:px-16 container mx-auto">
         <h1 className="text-4xl font-bold mb-4">Our Fleet</h1>
@@ -51,11 +52,7 @@ export default async function FleetPage() {
                      </div>
                   </div>
                   
-                  <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
-                     <div>
-                        <span className="text-xs text-gray-500 uppercase font-medium">Starting at</span>
-                        <div className="font-bold text-lg">${vehicle.base_fare_usd}</div>
-                     </div>
+                  <div className="border-t border-gray-100 pt-4 flex justify-end items-center">
                      <Link href="/book?service=point_to_point" className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
                         Book Now
                      </Link>
@@ -71,6 +68,7 @@ export default async function FleetPage() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

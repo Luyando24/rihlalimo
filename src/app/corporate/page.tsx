@@ -1,4 +1,5 @@
 import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 import { createClient } from '@/utils/supabase/server'
 import { LucideBuilding, LucideFileText, LucideUsers } from 'lucide-react'
 
@@ -14,7 +15,7 @@ export default async function CorporatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-black">
       <Navbar user={user} role={role} />
       
       {/* Hero Section */}
@@ -66,6 +67,7 @@ export default async function CorporatePage() {
               </div>
           </div>
       </div>
+      <Footer />
     </div>
   )
 }

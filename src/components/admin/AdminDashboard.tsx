@@ -29,7 +29,9 @@ import {
     LucideEdit2,
     LucideX,
     LucideBriefcase,
-    LucidePlane
+    LucidePlane,
+    LucideEye,
+    LucideEyeOff
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
@@ -980,6 +982,7 @@ function AdminsView({ admins, currentUser }: any) {
         email: '',
         password: ''
     })
+    const [showPassword, setShowPassword] = useState(false)
 
     const handleAddAdmin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -1091,12 +1094,21 @@ function AdminsView({ admins, currentUser }: any) {
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Password</label>
-                                <input
-                                    type="password" required
-                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                                    value={formData.password}
-                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"} required
+                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                        value={formData.password}
+                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
+                                    >
+                                        {showPassword ? <LucideEyeOff size={16} /> : <LucideEye size={16} />}
+                                    </button>
+                                </div>
                             </div>
                             <div className="pt-4">
                                 <button
@@ -1838,6 +1850,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isTestingSmtp, setIsTestingSmtp] = useState(false)
+    const [showSmtpPassword, setShowSmtpPassword] = useState(false)
     const [testEmail, setTestEmail] = useState('')
     const [formData, setFormData] = useState<any>({})
 
@@ -2304,13 +2317,22 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-gray-500 uppercase">Password / App Password</label>
-                                    <input
-                                        type="password" required
-                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                                        placeholder="••••••••••••"
-                                        value={smtpSettings.pass}
-                                        onChange={e => setSmtpSettings({ ...smtpSettings, pass: e.target.value })}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showSmtpPassword ? "text" : "password"} required
+                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                            placeholder="••••••••••••"
+                                            value={smtpSettings.pass}
+                                            onChange={e => setSmtpSettings({ ...smtpSettings, pass: e.target.value })}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
+                                        >
+                                            {showSmtpPassword ? <LucideEyeOff size={16} /> : <LucideEye size={16} />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { driverSignup } from './actions'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function DriverRegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -70,13 +72,22 @@ export default function DriverRegisterPage() {
               placeholder="Phone Number"
             />
 
-            <input
-              name="password"
-              type="password"
-              required
-              className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-              placeholder="Create Password"
-            />
+            <div className="relative">
+              <input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                className="w-full px-4 py-3 bg-gray-100 border-none rounded-lg text-black placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                placeholder="Create Password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
 
             {error && (
               <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center">

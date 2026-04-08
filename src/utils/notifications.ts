@@ -4,6 +4,8 @@ import { getEmailTemplate, formatBookingDetails } from './emailTemplates'
 
 export async function sendAdminNewBookingEmail(bookingId: string) {
     const supabase = await createClient()
+    
+    // 1. Fetch the booking details
     const { data: booking, error } = await supabase
         .from('bookings')
         .select(`
@@ -19,7 +21,25 @@ export async function sendAdminNewBookingEmail(bookingId: string) {
         return
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@rihlalimo.com'
+    // 2. Fetch all admin users from the profiles table
+    const { data: admins, error: adminError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('role', 'admin')
+
+    // Extract emails and filter out any null/undefined values
+    const adminEmails = admins ? admins.map(a => a.email).filter(email => !!email) : []
+
+    // Include process.env.ADMIN_EMAIL as a fallback/additional recipient
+    if (process.env.ADMIN_EMAIL && !adminEmails.includes(process.env.ADMIN_EMAIL)) {
+        adminEmails.push(process.env.ADMIN_EMAIL)
+    }
+
+    if (adminEmails.length === 0) {
+        console.error('No admin email addresses found to send notification to.')
+        return
+    }
+
     const subject = `New Booking #${booking.id.slice(0, 8)}: ${booking.pickup_location_address.split(',')[0]}`
 
     const content = `
@@ -37,8 +57,9 @@ export async function sendAdminNewBookingEmail(bookingId: string) {
         'View in Admin Dashboard'
     )
 
+    // Send to all admins
     await sendEmail({
-        to: adminEmail,
+        to: adminEmails.join(','), // SendEmail supports comma-separated list of emails
         subject,
         html
     })
