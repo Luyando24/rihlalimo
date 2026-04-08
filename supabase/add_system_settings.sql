@@ -26,7 +26,7 @@ values ('smtp_settings', '{
   "secure": false,
   "user": "",
   "pass": "",
-  "from_email": "noreply@rihlalimo.com",
+  "from_email": "noreply@rihlaride.com",
   "from_name": "Rihla Limo"
 }', 'SMTP configuration for sending emails')
 on conflict (key) do nothing;

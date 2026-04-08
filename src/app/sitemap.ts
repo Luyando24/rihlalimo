@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { createAdminClient } from '@/utils/supabase/admin'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://rihlalimo.com'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rihlaride.com'
   
   // Use admin client for static generation to bypass RLS and auth context requirements
   // Standard createClient() relies on cookies which aren't available during build/sitemap generation

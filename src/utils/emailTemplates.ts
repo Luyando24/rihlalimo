@@ -49,7 +49,7 @@ export function getEmailTemplate(title: string, content: string, actionUrl?: str
         <tr>
           <td style="padding: 30px; background-color: #fafafa; border-top: 1px solid #eeeeee; text-align: center;">
             <p style="margin: 0; font-size: 14px; color: ${lightTextColor};">
-              Questions? Contact us at <a href="mailto:support@rihlalimo.com" style="color: ${primaryColor}; text-decoration: none; font-weight: bold;">support@rihlalimo.com</a>
+              Questions? Contact us at <a href="mailto:support@rihlaride.com" style="color: ${primaryColor}; text-decoration: none; font-weight: bold;">support@rihlaride.com</a>
             </p>
             <div style="margin-top: 20px; font-size: 12px; color: #999999;">
               <p style="margin: 5px 0;">&copy; ${year} Rihla Limo. All rights reserved.</p>

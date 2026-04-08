@@ -44,7 +44,7 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions) {
   const secure = dbSettings?.secure !== undefined ? dbSettings.secure : (process.env.SMTP_SECURE === 'true')
   const user = dbSettings?.user || process.env.SMTP_USER
   const pass = dbSettings?.pass || process.env.SMTP_PASS
-  const fromEmail = dbSettings?.from_email || process.env.SMTP_FROM_EMAIL || 'noreply@rihlalimo.com'
+  const fromEmail = dbSettings?.from_email || process.env.SMTP_FROM_EMAIL || 'noreply@rihlaride.com'
   const fromName = dbSettings?.from_name || process.env.SMTP_FROM_NAME || 'Rihla Limo'
 
   // In development, if no SMTP credentials are provided, log the email instead of sending

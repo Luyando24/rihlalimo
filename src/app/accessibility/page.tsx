@@ -71,7 +71,7 @@ export default async function AccessibilityPage() {
                  <div className="bg-gray-50 p-6 rounded-xl mt-4">
                     <p className="font-medium text-black mb-2">Contact our Accessibility Team:</p>
                     <ul className="space-y-2">
-                        <li><strong>Email:</strong> accessibility@rihlalimo.com</li>
+                        <li><strong>Email:</strong> accessibility@rihlaride.com</li>
                         <li><strong>Phone:</strong> 1-800-555-0199 (TTY/TDD users, please use your preferred relay service)</li>
                         <li><strong>Online:</strong> <Link href="/contact" className="text-black underline hover:text-gray-600">Contact Form</Link></li>
                     </ul>
