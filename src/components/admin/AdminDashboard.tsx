@@ -32,8 +32,7 @@ import {
     LucidePlane,
     LucideEye,
     LucideEyeOff,
-    LucideNewspaper,
-    LucideArrowLeft
+    LucideNewspaper
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
