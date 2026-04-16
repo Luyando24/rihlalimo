@@ -76,9 +76,14 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
 
   // 2. Handle successful signup
   if (signUpData.user) {
-    // Update profile via Admin client to ensure phone is set
+    // Upsert profile via Admin client to ensure it exists and phone is set
     const adminClient = createAdminClient()
-    await adminClient.from('profiles').update({ phone: phone }).eq('id', signUpData.user.id)
+    await adminClient.from('profiles').upsert({ 
+      id: signUpData.user.id,
+      email: email,
+      full_name: fullName,
+      phone: phone 
+    }, { onConflict: 'id' })
 
     // 3. Generate verification link and send via SMTP
     const nextPath = redirectUrl && redirectUrl.startsWith('/') ? redirectUrl : '/dashboard'
@@ -93,8 +98,19 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
 
     if (linkError) {
       console.error('Error generating verification link:', linkError)
-      // Even if link generation fails, the user is created. They can use "Resend" later.
-      return { success: true, message: 'Account created, but we had trouble sending the verification email. Please try resending it from the login page.' }
+      
+      // Handle the case where the user already exists
+      if (linkError.message.includes('already been registered') || (linkError as any).code === 'email_exists') {
+        return { 
+          error: 'An account with this email already exists. If you haven\'t verified it yet, you can resend the link below.',
+          unconfirmed: true 
+        }
+      }
+
+      return { 
+        success: true, 
+        message: 'Account created, but we had trouble sending the verification email. Please try resending it from the login page.' 
+      }
     }
 
     const { getVerificationEmailTemplate } = await import('@/utils/emailTemplates')
@@ -103,11 +119,25 @@ export async function signup(formData: FormData): Promise<{ error?: string; mess
     const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback?token_hash=${linkData.properties.hashed_token}&type=${linkData.properties.verification_type}&next=${nextPath}`
     const html = getVerificationEmailTemplate(fullName, verificationUrl)
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: email,
       subject: 'Verify Your Rihla Limo Account',
       html
     })
+
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error)
+      return { 
+        error: `Account created, but we couldn't send the email: ${emailResult.error}. Please try the "Resend Verification" option.`
+      }
+    }
+
+    if ((emailResult as any).mock) {
+      return { 
+        success: true, 
+        message: 'Signup successful! [DEV MODE] Email was logged to the console instead of being sent.' 
+      }
+    }
 
     return { success: true, message: 'Signup successful! Please check your email to verify your account.' }
   }
@@ -160,7 +190,11 @@ export async function resendVerificationAction(formData: FormData): Promise<{ er
   })
 
   if (!emailResult.success) {
-    return { error: 'Failed to send verification email. Please check your connection.' }
+    return { error: `Failed to send verification email: ${emailResult.error}` }
+  }
+
+  if ((emailResult as any).mock) {
+    return { success: true, message: '[DEV MODE] Verification link logged to server console.' }
   }
 
   return { success: true, message: 'A new verification link has been sent to your email.' }

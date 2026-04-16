@@ -52,9 +52,13 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions) {
     console.log('--- MOCK EMAIL SEND (No Credentials) ---')
     console.log('To:', to)
     console.log('Subject:', subject)
-    console.log('HTML Body:', html)
+    // console.log('HTML Body:', html)
     console.log('-----------------------')
-    return { success: true, message: 'Email logged (Mock mode)' }
+    return { 
+      success: true, 
+      message: 'Email logged to server console (Mock Mode). Configure SMTP in Admin settings to send real emails.',
+      mock: true 
+    }
   }
 
   try {
@@ -66,6 +70,9 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions) {
         user,
         pass,
       },
+      // Add timeout to avoid hanging
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
     })
 
     const info = await transporter.sendMail({
@@ -80,6 +87,10 @@ export async function sendEmail({ to, subject, html, text }: EmailOptions) {
     return { success: true, messageId: info.messageId }
   } catch (error: any) {
     console.error('Error sending email:', error)
-    return { success: false, error: error.message }
+    return { 
+      success: false, 
+      error: error.message || 'Unknown SMTP error',
+      code: error.code
+    }
   }
 }
