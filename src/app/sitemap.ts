@@ -25,8 +25,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/diversity',
     '/sustainability',
     '/help',
+    '/accessibility',
+    '/privacy',
+    '/terms',
     '/book',
-    '/login'
+    '/login',
+    '/drive/register'
   ]
 
   const staticUrls = routes.map((route) => ({
