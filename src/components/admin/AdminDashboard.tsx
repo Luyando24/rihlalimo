@@ -32,7 +32,10 @@ import {
     LucidePlane,
     LucideEye,
     LucideEyeOff,
-    LucideNewspaper
+    LucideNewspaper,
+    LucideTicket,
+    LucideRefreshCw,
+    LucideTag
 } from 'lucide-react'
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
@@ -61,11 +64,16 @@ import {
     deleteUser,
     addAdmin
 } from '@/app/admin/actions'
+import { 
+    createDiscount, 
+    updateDiscount, 
+    deleteDiscount 
+} from '@/app/admin/discount-actions'
 import { createNewsPost, deleteNewsPost, updateNewsPost } from '@/app/admin/news-actions'
 import { createClient } from '@/utils/supabase/client'
 import RichTextEditor from './RichTextEditor'
 
-export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats, newsPosts = [] }: any) {
+export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats, newsPosts = [], discounts = [] }: any) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('dashboard')
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
@@ -149,6 +157,12 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                             label="News"
                             active={activeTab === 'newsroom'}
                             onClick={() => { setActiveTab('newsroom'); setIsSidebarOpen(false); }}
+                        />
+                        <NavItem
+                            icon={<LucideTicket size={20} />}
+                            label="Discounts"
+                            active={activeTab === 'discounts'}
+                            onClick={() => { setActiveTab('discounts'); setIsSidebarOpen(false); }}
                         />
                     </nav>
 
@@ -234,6 +248,9 @@ export default function AdminDashboard({ profile, bookings, drivers, customers, 
                     )}
                     {activeTab === 'newsroom' && (
                         <NewsroomView posts={newsPosts} setActiveTab={setActiveTab} setEditingPost={setEditingNewsPost} />
+                    )}
+                    {activeTab === 'discounts' && (
+                        <DiscountsView discounts={discounts} />
                     )}
                     {activeTab === 'newsroom_create' && (
                         <CreateNewsPostView setActiveTab={setActiveTab} editingPost={editingNewsPost} />
@@ -894,6 +911,320 @@ function CustomersView({ customers, onViewHistory }: any) {
                         )}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    )
+}
+
+function DiscountsView({ discounts }: { discounts: any[] }) {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [editingDiscount, setEditingDiscount] = useState<any>(null)
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+    const handleDelete = async (id: string) => {
+        if (confirm('Are you sure you want to delete this discount code?')) {
+            setActionLoading(id)
+            const result = await deleteDiscount(id)
+            setActionLoading(null)
+            if (result.error) alert(result.error)
+        }
+    }
+
+    const handleToggleStatus = async (discount: any) => {
+        setActionLoading(discount.id)
+        const result = await updateDiscount(discount.id, { is_active: !discount.is_active })
+        setActionLoading(null)
+        if (result.error) alert(result.error)
+    }
+
+    return (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                        <LucideTicket size={24} className="text-black" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg">Discount Codes</h3>
+                        <p className="text-xs text-gray-500">Create and manage your promotional offers</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => { setEditingDiscount(null); setIsAddModalOpen(true); }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-all shadow-sm"
+                >
+                    <LucidePlus size={18} /> Create Code
+                </button>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                        <tr>
+                            <th className="px-6 py-4">CODE</th>
+                            <th className="px-6 py-4">DISCOUNT</th>
+                            <th className="px-6 py-4">USAGE</th>
+                            <th className="px-6 py-4">EXPIRES</th>
+                            <th className="px-6 py-4">STATUS</th>
+                            <th className="px-6 py-4 text-right">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {discounts && discounts.map((discount: any) => (
+                            <tr key={discount.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2 group">
+                                        <span className="font-mono font-bold text-lg tracking-wider bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                            {discount.code}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="font-bold text-green-600">
+                                        {discount.type === 'percentage' 
+                                            ? `${discount.value}% OFF` 
+                                            : `$${discount.value} OFF`}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-gray-500">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium text-black">{discount.current_uses}</span>
+                                        <span className="text-gray-300">/</span>
+                                        <span>{discount.max_uses || '∞'}</span>
+                                    </div>
+                                    <div className="w-16 h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                        <div 
+                                            className="h-full bg-black transition-all" 
+                                            style={{ width: discount.max_uses ? `${(discount.current_uses / discount.max_uses) * 100}%` : '10%' }}
+                                        />
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 text-gray-500">
+                                    {discount.expires_at 
+                                        ? new Date(discount.expires_at).toLocaleDateString() 
+                                        : 'Never'}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <button
+                                        onClick={() => handleToggleStatus(discount)}
+                                        disabled={actionLoading === discount.id}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all
+                                            ${discount.is_active 
+                                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                                                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}
+                                            ${actionLoading === discount.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+                                        `}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${discount.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                                        {discount.is_active ? 'Active' : 'Inactive'}
+                                    </button>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end gap-1">
+                                        <button
+                                            onClick={() => { setEditingDiscount(discount); setIsAddModalOpen(true); }}
+                                            className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-lg transition-all"
+                                        >
+                                            <LucideEdit2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(discount.id)}
+                                            disabled={actionLoading === discount.id}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                                        >
+                                            {actionLoading === discount.id ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                                            ) : (
+                                                <LucideTrash2 size={16} />
+                                            )}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {(!discounts || discounts.length === 0) && (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <LucideTicket size={48} className="opacity-10" />
+                                        <p>No discount codes found. Create your first one to get started!</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {isAddModalOpen && (
+                <CreateDiscountModal 
+                    isOpen={isAddModalOpen} 
+                    onClose={() => setIsAddModalOpen(false)} 
+                    editingDiscount={editingDiscount} 
+                />
+            )}
+        </div>
+    )
+}
+
+function CreateDiscountModal({ isOpen, onClose, editingDiscount }: any) {
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [formData, setFormData] = useState({
+        code: editingDiscount?.code || '',
+        type: editingDiscount?.type || 'percentage',
+        value: editingDiscount?.value || '',
+        max_uses: editingDiscount?.max_uses || '',
+        expires_at: editingDiscount?.expires_at ? new Date(editingDiscount.expires_at).toISOString().split('T')[0] : '',
+        is_active: editingDiscount?.is_active ?? true
+    })
+
+    const generateCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        let code = ''
+        for (let i = 0; i < 8; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        setFormData({ ...formData, code })
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsSubmitting(true)
+
+        const payload = {
+            ...formData,
+            value: Number(formData.value),
+            max_uses: formData.max_uses ? Number(formData.max_uses) : null,
+            expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null
+        }
+
+        const result = editingDiscount 
+            ? await updateDiscount(editingDiscount.id, payload)
+            : await createDiscount(payload)
+
+        setIsSubmitting(false)
+        if (result.success) {
+            onClose()
+        } else {
+            alert(result.error || 'Failed to save discount')
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
+            <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h3 className="text-xl font-bold">{editingDiscount ? 'Edit Discount Code' : 'Create Promo Code'}</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-black transition-all">
+                        <LucideX size={20} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Discount Code</label>
+                        <div className="relative">
+                            <input
+                                type="text" required
+                                placeholder="SUMMER2024"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all font-mono font-bold tracking-widest uppercase"
+                                value={formData.code}
+                                onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                            />
+                            <button
+                                type="button"
+                                onClick={generateCode}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-white border border-gray-200 rounded-lg text-gray-400 hover:text-black hover:border-black transition-all"
+                                title="Generate Random Code"
+                            >
+                                <LucideRefreshCw size={16} />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Type</label>
+                            <select
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all appearance-none cursor-pointer"
+                                value={formData.type}
+                                onChange={e => setFormData({ ...formData, type: e.target.value as any })}
+                            >
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount ($)</option>
+                            </select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                {formData.type === 'percentage' ? 'Percent Off (%)' : 'Amount Off ($)'}
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number" required
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                    value={formData.value}
+                                    placeholder={formData.type === 'percentage' ? '10' : '50'}
+                                    onChange={e => setFormData({ ...formData, value: e.target.value })}
+                                />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-gray-400 pointer-events-none">
+                                    {formData.type === 'percentage' ? '%' : '$'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Expires (Optional)</label>
+                            <input
+                                type="date"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all cursor-pointer"
+                                value={formData.expires_at}
+                                onChange={e => setFormData({ ...formData, expires_at: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Max Uses (Optional)</label>
+                            <input
+                                type="number"
+                                placeholder="∞"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black transition-all font-mono"
+                                value={formData.max_uses}
+                                onChange={e => setFormData({ ...formData, max_uses: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <input 
+                                type="checkbox"
+                                id="is_active"
+                                className="w-5 h-5 accent-black rounded-lg cursor-pointer"
+                                checked={formData.is_active}
+                                onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                            />
+                            <label htmlFor="is_active" className="text-sm font-medium text-gray-700 cursor-pointer">
+                                Mark this code as Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 py-3 bg-white border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="flex-[2] py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
+                        >
+                            {isSubmitting ? 'Saving...' : (editingDiscount ? 'Save Changes' : 'Create Code')}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     )

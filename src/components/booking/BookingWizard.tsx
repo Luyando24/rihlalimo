@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight } from 'lucide-react'
 import { getVehicleTypes, getQuoteAction, createBookingAction, initializePaymentAction } from '@/app/book/actions'
+import { validateDiscountCode } from '@/app/admin/discount-actions'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
 import { useSearchParams } from 'next/navigation'
 import { Elements } from '@stripe/react-stripe-js'
@@ -66,6 +67,10 @@ export default function BookingWizard({ user, profile }: any) {
   const [loadingQuote, setLoadingQuote] = useState(false)
   const [loadingBooking, setLoadingBooking] = useState(false)
   const [bookingResult, setBookingResult] = useState<any>(null)
+  const [promoCode, setPromoCode] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<any>(null)
+  const [discountError, setDiscountError] = useState<string | null>(null)
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false)
 
   // Load vehicles on mount
   useEffect(() => {
@@ -172,10 +177,9 @@ export default function BookingWizard({ user, profile }: any) {
     
     if (formData.serviceType === 'airport_pickup') {
       types = ['airport'];
-    } else if (formData.serviceType === 'point_to_point' || formData.serviceType === 'hourly' || formData.serviceType === 'airport_dropoff') {
       // In a strict implementation we could try to exclude airports, but Google Maps Autocomplete
       // doesn't have an "exclude" filter. Instead we focus on address types.
-      types = ['address', 'establishment'];
+      types = ['geocode', 'establishment'];
     }
 
     return {
@@ -190,7 +194,7 @@ export default function BookingWizard({ user, profile }: any) {
     if (formData.serviceType === 'airport_dropoff') {
       types = ['airport'];
     } else if (formData.serviceType === 'point_to_point' || formData.serviceType === 'airport_pickup') {
-      types = ['address', 'establishment'];
+      types = ['geocode', 'establishment'];
     }
 
     return {
@@ -497,7 +501,11 @@ export default function BookingWizard({ user, profile }: any) {
     }
 
     setLoadingBooking(true)
-    const result = await initializePaymentAction(formData)
+    const result = await initializePaymentAction({
+      ...formData,
+      discountId: appliedDiscount?.id || null,
+      promoCode: appliedDiscount?.code || null
+    })
     setLoadingBooking(false)
 
     if (result.success) {
@@ -510,7 +518,11 @@ export default function BookingWizard({ user, profile }: any) {
 
   const handlePaymentSuccess = async () => {
     setLoadingBooking(true)
-    const result = await createBookingAction(formData)
+    const result = await createBookingAction({
+      ...formData,
+      discountId: appliedDiscount?.id || null,
+      promoCode: appliedDiscount?.code || null
+    })
     setLoadingBooking(false)
 
     if (result.success) {
@@ -520,6 +532,41 @@ export default function BookingWizard({ user, profile }: any) {
       alert(result.error || 'Failed to finalize booking after payment. Please contact support.')
     }
   }
+
+  const handleValidatePromo = async () => {
+    if (!promoCode.trim()) return
+
+    setIsValidatingPromo(true)
+    setDiscountError(null)
+    
+    const result = await validateDiscountCode(promoCode)
+    
+    if (result.success) {
+      setAppliedDiscount(result.discount)
+      setPromoCode(result.discount.code)
+    } else {
+      setAppliedDiscount(null)
+      setDiscountError(result.error || 'Invalid code')
+    }
+    setIsValidatingPromo(false)
+  }
+
+  const calculateFinalPrice = () => {
+    if (!priceQuote) return 0
+    let price = Number(priceQuote.price)
+    
+    if (appliedDiscount) {
+      if (appliedDiscount.type === 'percentage') {
+        price = price * (1 - appliedDiscount.value / 100)
+      } else {
+        price = Math.max(0, price - appliedDiscount.value)
+      }
+    }
+    
+    return price
+  }
+
+  const finalPrice = calculateFinalPrice()
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
@@ -931,10 +978,60 @@ export default function BookingWizard({ user, profile }: any) {
                   <span className="font-medium text-black">{priceQuote.durationMinutes} mins</span>
                 </div>
               )}
+              <div className="flex justify-between border-b border-gray-200 pb-4">
+                <span className="text-gray-600">Base Price</span>
+                <span className="font-medium text-black">{priceQuote ? `$${Number(priceQuote.price).toFixed(2)}` : 'Calculating...'}</span>
+              </div>
+              
+              {appliedDiscount && (
+                <div className="flex justify-between border-b border-gray-200 pb-4 text-green-600">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Discount ({appliedDiscount.code})</span>
+                    <button 
+                      onClick={() => { setAppliedDiscount(null); setPromoCode(''); }}
+                      className="text-[10px] text-red-500 hover:underline text-left"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <span className="font-bold">
+                    -{appliedDiscount.type === 'percentage' 
+                      ? `${appliedDiscount.value}%` 
+                      : `$${appliedDiscount.value}`}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between border-t border-gray-200 pt-4 mt-4">
                 <span className="text-lg font-bold text-gray-900">Total Price</span>
-                <span className="text-2xl font-bold text-black">{priceQuote ? `$${Number(priceQuote.price).toFixed(2)}` : 'Calculating...'}</span>
+                <span className="text-2xl font-bold text-black">${finalPrice.toFixed(2)}</span>
               </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 p-6 rounded-xl mb-6">
+               <h3 className="font-bold text-lg mb-4">Promo Code</h3>
+               <div className="flex gap-2">
+                 <div className="relative flex-1">
+                   <LucideTag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                   <input
+                     type="text"
+                     className={`input-field pl-9 uppercase font-mono tracking-wider ${discountError ? 'border-red-500' : ''}`}
+                     placeholder="ENTER CODE"
+                     value={promoCode}
+                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                     disabled={appliedDiscount}
+                   />
+                 </div>
+                 <button 
+                   onClick={handleValidatePromo}
+                   disabled={isValidatingPromo || appliedDiscount || !promoCode}
+                   className="px-4 py-2 bg-black text-white rounded-lg font-bold hover:bg-gray-800 disabled:opacity-50 transition-all text-sm whitespace-nowrap"
+                 >
+                   {isValidatingPromo ? 'Checking...' : (appliedDiscount ? 'Applied' : 'Apply')}
+                 </button>
+               </div>
+               {discountError && <p className="text-red-500 text-xs mt-2">{discountError}</p>}
+               {appliedDiscount && <p className="text-green-600 text-xs mt-2">Promo code applied successfully!</p>}
             </div>
 
             <div className="bg-white border border-gray-200 p-6 rounded-xl mb-6 space-y-4">

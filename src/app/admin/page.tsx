@@ -123,6 +123,12 @@ export default async function AdminPage() {
     .select('*')
     .order('created_at', { ascending: false })
 
+  // Fetch Discounts
+  const { data: discounts } = await supabase
+    .from('discounts')
+    .select('*')
+    .order('created_at', { ascending: false })
+
   const stats = {
     totalRevenue,
     activeBookings: activeBookings || 0,
@@ -144,6 +150,7 @@ export default async function AdminPage() {
       settings={settings}
       stats={stats}
       newsPosts={newsPosts || []}
+      discounts={discounts || []}
     />
   )
 }

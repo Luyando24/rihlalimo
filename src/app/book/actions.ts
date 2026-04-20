@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { Client, TravelMode, UnitSystem } from "@googlemaps/google-maps-services-js"
 import { getSystemDistanceUnit } from '@/app/admin/actions'
 import { sendAdminNewBookingEmail, sendCustomerBookingConfirmationEmail } from '@/utils/notifications'
+import { validateDiscountCode } from '@/app/admin/discount-actions'
 
 const googleMapsClient = new Client({});
 
@@ -186,13 +187,26 @@ export async function initializePaymentAction(bookingData: any) {
     return { success: false, error: 'Could not calculate price' }
   }
 
-  const amountInCents = Math.round(quoteResult.quote.price * 100)
-
   try {
-    // Initialize Payment (Mock or Real)
     const isStripeEnabled = process.env.STRIPE_SECRET_KEY && 
                            !process.env.STRIPE_SECRET_KEY.includes('your-stripe') && 
                            process.env.STRIPE_SECRET_KEY.startsWith('sk_');
+
+    // Handle Discount
+    let finalPrice = quoteResult.quote.price
+    if (bookingData.promoCode) {
+      const discountResult = await validateDiscountCode(bookingData.promoCode)
+      if (discountResult.success && discountResult.discount) {
+        const d = discountResult.discount
+        if (d.type === 'percentage') {
+          finalPrice = finalPrice * (1 - d.value / 100)
+        } else {
+          finalPrice = Math.max(0, finalPrice - d.value)
+        }
+      }
+    }
+
+    const amountInCents = Math.round(finalPrice * 100)
 
     if (isStripeEnabled) {
         const paymentIntent = await stripe.paymentIntents.create({
@@ -200,20 +214,23 @@ export async function initializePaymentAction(bookingData: any) {
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         metadata: {
-            customer_id: user.id
+            customer_id: user.id,
+            promo_code: bookingData.promoCode || ''
         }
         })
 
         return {
         success: true,
         clientSecret: paymentIntent.client_secret,
-        message: 'Payment initialized.'
+        message: 'Payment initialized.',
+        finalPrice: finalPrice
         }
     } else {
         // Mock success for development without Stripe
         return {
             success: true,
-            message: 'Mock payment initialized.'
+            message: 'Mock payment initialized.',
+            finalPrice: finalPrice
         }
     }
 
@@ -239,6 +256,30 @@ export async function createBookingAction(bookingData: any) {
   }
 
   try {
+    // Handle Discount
+    let finalPrice = quoteResult.quote.price
+    let appliedDiscountId = null
+    
+    if (bookingData.promoCode) {
+      const discountResult = await validateDiscountCode(bookingData.promoCode)
+      if (discountResult.success && discountResult.discount) {
+        const d = discountResult.discount
+        appliedDiscountId = d.id
+        if (d.type === 'percentage') {
+          finalPrice = finalPrice * (1 - d.value / 100)
+        } else {
+          finalPrice = Math.max(0, finalPrice - d.value)
+        }
+
+        // Increment usage count
+        const supabaseAdmin = (await import('@/utils/supabase/admin')).createAdminClient()
+        await supabaseAdmin
+          .from('discounts')
+          .update({ current_uses: d.current_uses + 1 })
+          .eq('id', d.id)
+      }
+    }
+
     // 2. Create Booking Record
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -251,7 +292,7 @@ export async function createBookingAction(bookingData: any) {
         pickup_time: new Date(`${bookingData.date}T${bookingData.time}`).toISOString(),
         distance_km_estimated: quoteResult.quote.distanceKm,
         duration_minutes_estimated: quoteResult.quote.durationMinutes,
-        total_price_calculated: quoteResult.quote.price,
+        total_price_calculated: finalPrice,
         status: 'confirmed', // Directly confirmed since payment is done
         payment_status: 'paid', // Mark as paid
         flight_number: bookingData.flightNumber || null,
@@ -259,7 +300,9 @@ export async function createBookingAction(bookingData: any) {
         meet_and_greet: bookingData.meetAndGreet || false,
         passenger_name: bookingData.passengerName,
         passenger_phone: bookingData.passengerPhone,
-        notes: bookingData.notes
+        notes: bookingData.notes,
+        discount_id: appliedDiscountId,
+        promo_code: bookingData.promoCode || null
       })
       .select()
       .single()
