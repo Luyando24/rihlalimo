@@ -11,6 +11,38 @@ import { validateDiscountCode } from '@/app/admin/discount-actions'
 
 const googleMapsClient = new Client({});
 
+export interface PriceQuote {
+  price: number;
+  distanceKm: number;
+  displayDistance: number;
+  distanceUnit: string;
+  durationMinutes: number;
+  currency: string;
+  isSimulation?: boolean;
+  simulationReason?: string;
+}
+
+export interface BookingFormData {
+  serviceType: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  pickupCoordinates?: { lat: number; lng: number } | null;
+  dropoffCoordinates?: { lat: number; lng: number } | null;
+  date: string;
+  time: string;
+  vehicleTypeId: string;
+  passengers?: number;
+  airline?: string;
+  flightNumber?: string;
+  meetAndGreet?: boolean;
+  hours?: number;
+  passengerName?: string;
+  passengerPhone?: string;
+  notes?: string;
+  promoCode?: string | null;
+  discountId?: string | null;
+}
+
 export async function getVehicleTypes() {
   const supabase = await createClient()
   const { data, error } = await supabase.from('vehicle_types').select('*').order('base_fare_usd', { ascending: true })
@@ -172,7 +204,7 @@ export async function getQuoteAction(data: {
   }
 }
 
-export async function initializePaymentAction(bookingData: any) {
+export async function initializePaymentAction(bookingData: BookingFormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -240,7 +272,7 @@ export async function initializePaymentAction(bookingData: any) {
   }
 }
 
-export async function createBookingAction(bookingData: any) {
+export async function createBookingAction(bookingData: BookingFormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   

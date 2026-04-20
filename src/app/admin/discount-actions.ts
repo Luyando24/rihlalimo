@@ -4,6 +4,24 @@ import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
+export interface Discount {
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  max_uses: number | null;
+  current_uses: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ActionResponse {
+    success?: boolean;
+    error?: string;
+    discount?: Discount;
+}
+
 export async function createDiscount(data: {
     code: string;
     type: 'percentage' | 'fixed';
@@ -11,7 +29,7 @@ export async function createDiscount(data: {
     max_uses?: number | null;
     expires_at?: string | null;
     is_active?: boolean;
-}) {
+}): Promise<ActionResponse> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -52,7 +70,7 @@ export async function updateDiscount(id: string, data: Partial<{
     max_uses: number | null;
     expires_at: string | null;
     is_active: boolean;
-}>) {
+}>): Promise<ActionResponse> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -83,7 +101,7 @@ export async function updateDiscount(id: string, data: Partial<{
     return { success: true, discount: result }
 }
 
-export async function deleteDiscount(id: string) {
+export async function deleteDiscount(id: string): Promise<ActionResponse> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -109,7 +127,7 @@ export async function deleteDiscount(id: string) {
     return { success: true }
 }
 
-export async function validateDiscountCode(code: string) {
+export async function validateDiscountCode(code: string): Promise<ActionResponse> {
     const supabase = await createClient()
     
     const { data, error } = await supabase

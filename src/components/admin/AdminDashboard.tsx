@@ -73,7 +73,33 @@ import { createNewsPost, deleteNewsPost, updateNewsPost } from '@/app/admin/news
 import { createClient } from '@/utils/supabase/client'
 import RichTextEditor from './RichTextEditor'
 
-export default function AdminDashboard({ profile, bookings, drivers, customers, admins, fleet, vehicleTypes, settings, stats, newsPosts = [], discounts = [] }: any) {
+interface AdminDashboardProps {
+  profile: any;
+  bookings: any[];
+  drivers: any[];
+  customers: any[];
+  admins: any[];
+  fleet: any[];
+  vehicleTypes: any[];
+  settings: any;
+  stats: any;
+  newsPosts?: any[];
+  discounts?: any[];
+}
+
+export default function AdminDashboard({ 
+  profile, 
+  bookings, 
+  drivers, 
+  customers, 
+  admins, 
+  fleet, 
+  vehicleTypes, 
+  settings, 
+  stats, 
+  newsPosts = [], 
+  discounts = [] 
+}: AdminDashboardProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('dashboard')
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null)

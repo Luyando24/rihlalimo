@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight } from 'lucide-react'
-import { getVehicleTypes, getQuoteAction, createBookingAction, initializePaymentAction } from '@/app/book/actions'
+import { getVehicleTypes, getQuoteAction, createBookingAction, initializePaymentAction, type BookingFormData, type PriceQuote } from '@/app/book/actions'
 import { validateDiscountCode } from '@/app/admin/discount-actions'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
 import { useSearchParams } from 'next/navigation'
@@ -61,7 +61,7 @@ export default function BookingWizard({ user, profile }: any) {
     }
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [priceQuote, setPriceQuote] = useState<any>(null)
+  const [priceQuote, setPriceQuote] = useState<PriceQuote | null>(null)
   const [vehicles, setVehicles] = useState<any[]>([])
   const [loadingVehicles, setLoadingVehicles] = useState(true)
   const [loadingQuote, setLoadingQuote] = useState(false)
@@ -418,9 +418,12 @@ export default function BookingWizard({ user, profile }: any) {
       const minutes = String(now.getMinutes()).padStart(2, '0')
       const timeStr = `${hours}:${minutes}`
 
-      // Directly update state for immediate validation check
-      formData.date = dateStr
-      formData.time = timeStr
+      // Update state correctly via setter
+      setFormData(prev => ({
+        ...prev,
+        date: dateStr,
+        time: timeStr
+      }))
     }
 
     if (!validateStep(step)) {
