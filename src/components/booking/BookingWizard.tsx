@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight } from 'lucide-react'
+import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight, LucideTag } from 'lucide-react'
 import { getVehicleTypes, getQuoteAction, createBookingAction, initializePaymentAction, type BookingFormData, type PriceQuote } from '@/app/book/actions'
 import { validateDiscountCode } from '@/app/admin/discount-actions'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
@@ -101,7 +101,7 @@ export default function BookingWizard({ user, profile }: any) {
           if (parsed.step === 4) {
             setLoadingQuote(true)
             getQuoteAction(parsed.formData).then(res => {
-              if (res.success) setPriceQuote(res.quote)
+              if (res.success && res.quote) setPriceQuote(res.quote)
               setLoadingQuote(false)
             }).catch(() => setLoadingQuote(false))
           }
@@ -461,7 +461,7 @@ export default function BookingWizard({ user, profile }: any) {
         hours: formData.hours,
       })
 
-      if (result.success) {
+      if (result.success && result.quote) {
         setPriceQuote(result.quote)
       } else {
         alert(result.error || 'Failed to calculate price')
@@ -544,7 +544,7 @@ export default function BookingWizard({ user, profile }: any) {
     
     const result = await validateDiscountCode(promoCode)
     
-    if (result.success) {
+    if (result.success && result.discount) {
       setAppliedDiscount(result.discount)
       setPromoCode(result.discount.code)
     } else {

@@ -107,8 +107,8 @@ export default async function AdminPage() {
     }
   }
 
-  // Calculate total revenue (only COMPLETED bookings)
-  const totalRevenue = bookings?.filter(b => b.status === 'completed').reduce((acc, booking) => acc + (booking.total_price_calculated || 0), 0) || 0
+  // Calculate total revenue (include all PAID bookings)
+  const totalRevenue = bookings?.filter(b => b.payment_status === 'paid').reduce((acc, booking) => acc + Number(booking.total_price_calculated || 0), 0) || 0
 
   // Fetch Admins
   const { data: adminProfiles } = await supabase

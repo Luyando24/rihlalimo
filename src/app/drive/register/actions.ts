@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 
-export async function driverSignup(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean } | void> {
+export async function driverSignup(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean; unconfirmed?: boolean } | void> {
   const supabase = await createClient()
   const adminAuth = createAdminClient().auth.admin
 

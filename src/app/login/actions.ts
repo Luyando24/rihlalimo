@@ -48,7 +48,7 @@ export async function login(formData: FormData): Promise<{ error?: string; messa
   redirect('/')
 }
 
-export async function signup(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean } | void> {
+export async function signup(formData: FormData): Promise<{ error?: string; message?: string; success?: boolean; unconfirmed?: boolean } | void> {
   const supabase = await createClient()
   const adminAuth = createAdminClient().auth.admin
 
