@@ -35,12 +35,16 @@ export interface BookingFormData {
   airline?: string;
   flightNumber?: string;
   meetAndGreet?: boolean;
-  hours?: number;
+  minutes?: number;
   passengerName?: string;
   passengerPhone?: string;
   notes?: string;
   promoCode?: string | null;
   discountId?: string | null;
+  passengersCount?: number;
+  checkedBagsCount?: number;
+  carSeatsCount?: number;
+  childAges?: string[];
 }
 
 export async function getVehicleTypes() {
@@ -54,17 +58,9 @@ export async function getVehicleTypes() {
   return data
 }
 
-export async function getQuoteAction(data: {
-  serviceType: string
-  pickupLocation: string
-  dropoffLocation: string
-  pickupCoordinates?: { lat: number; lng: number } | null
-  dropoffCoordinates?: { lat: number; lng: number } | null
-  date: string
-  time: string
-  vehicleTypeId: string
   meetAndGreet?: boolean
   hours?: number
+  carSeatsCount?: number
 }) {
   console.log('--- Quote Request ---')
   console.log('Service:', data.serviceType)
@@ -182,6 +178,7 @@ export async function getQuoteAction(data: {
       pickupLocation: data.pickupLocation,
       dropoffLocation: data.dropoffLocation,
       meetAndGreet: data.meetAndGreet,
+      carSeatsCount: data.carSeatsCount,
       durationMinutes: data.serviceType === 'hourly' && data.hours ? data.hours * 60 : durationMinutes
     })
 
@@ -334,7 +331,11 @@ export async function createBookingAction(bookingData: BookingFormData) {
         passenger_phone: bookingData.passengerPhone,
         notes: bookingData.notes,
         discount_id: appliedDiscountId,
-        promo_code: bookingData.promoCode || null
+        promo_code: bookingData.promoCode || null,
+        passengers_count: bookingData.passengersCount || 1,
+        checked_bags_count: bookingData.checkedBagsCount || 0,
+        car_seats_count: bookingData.carSeatsCount || 0,
+        child_ages: bookingData.childAges || []
       })
       .select()
       .single()

@@ -50,7 +50,10 @@ export default function BookingWizard({ user, profile }: any) {
       date: dateStr,
       time: timeStr,
       vehicleTypeId: '',
-      passengers: 1,
+      passengersCount: 1,
+      checkedBagsCount: 0,
+      carSeatsCount: 0,
+      childAges: [] as string[],
       airline: '',
       flightNumber: '',
       meetAndGreet: false,
@@ -98,13 +101,13 @@ export default function BookingWizard({ user, profile }: any) {
           setStep(parsed.step)
           
           // Re-fetch quote if restoring to step 4
-          if (parsed.step === 4) {
-            setLoadingQuote(true)
-            getQuoteAction(parsed.formData).then(res => {
+            getQuoteAction({
+              ...parsed.formData,
+              carSeatsCount: parsed.formData.carSeatsCount || 0
+            }).then(res => {
               if (res.success && res.quote) setPriceQuote(res.quote)
               setLoadingQuote(false)
             }).catch(() => setLoadingQuote(false))
-          }
         }
         localStorage.removeItem('rihla_pending_booking')
       } catch (e) {
@@ -459,6 +462,7 @@ export default function BookingWizard({ user, profile }: any) {
         vehicleTypeId: formData.vehicleTypeId,
         meetAndGreet: formData.meetAndGreet,
         hours: formData.hours,
+        carSeatsCount: formData.carSeatsCount
       })
 
       if (result.success && result.quote) {
@@ -570,6 +574,18 @@ export default function BookingWizard({ user, profile }: any) {
   }
 
   const finalPrice = calculateFinalPrice()
+
+  const selectedVehicle = vehicles.find(v => v.id === formData.vehicleTypeId)
+  const isSUV = selectedVehicle ? 
+    (selectedVehicle.name.toLowerCase().includes('suv') || 
+     selectedVehicle.name.toLowerCase().includes('van') || 
+     selectedVehicle.name.toLowerCase().includes('sprinter')) : false
+
+  const CHILD_AGE_RANGES = [
+    { id: 'infant', label: 'Infant (0-1 year)' },
+    { id: 'toddler', label: 'Toddler (1-4 years)' },
+    { id: 'booster', label: 'Booster (4-8 years)' }
+  ]
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
@@ -731,9 +747,46 @@ export default function BookingWizard({ user, profile }: any) {
           </div>
         )}
 
-        {step === 3 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-light mb-6 text-black">Ride Details</h2>
+
+            <div className="grid grid-cols-2 gap-6 p-6 bg-black/5 rounded-2xl border border-black/5 mb-8">
+              <div>
+                <label className="label flex items-center justify-between mb-3">
+                  <span className="font-bold text-black uppercase tracking-wider text-xs">Passengers</span>
+                  <span className="text-[10px] text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-100">Max: {selectedVehicle?.capacity_passengers || 4}</span>
+                </label>
+                <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                    <input 
+                        type="range" min="1" max={selectedVehicle?.capacity_passengers || 4}
+                        value={formData.passengersCount}
+                        onChange={(e) => updateFormData('passengersCount', parseInt(e.target.value))}
+                        className="flex-1 accent-black h-1 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex items-center justify-center w-10 h-10 bg-black text-white rounded-lg font-bold text-xl">
+                      {formData.passengersCount}
+                    </div>
+                </div>
+              </div>
+              <div>
+                <label className="label flex items-center justify-between mb-3">
+                  <span className="font-bold text-black uppercase tracking-wider text-xs">Checked Bags</span>
+                  <span className="text-[10px] text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-100">Max: {selectedVehicle?.capacity_luggage || 2}</span>
+                </label>
+                <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                    <input 
+                        type="range" min="0" max={selectedVehicle?.capacity_luggage || 2}
+                        value={formData.checkedBagsCount}
+                        onChange={(e) => updateFormData('checkedBagsCount', parseInt(e.target.value))}
+                        className="flex-1 accent-black h-1 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex items-center justify-center w-10 h-10 bg-black text-white rounded-lg font-bold text-xl">
+                      {formData.checkedBagsCount}
+                    </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="label">
@@ -962,6 +1015,23 @@ export default function BookingWizard({ user, profile }: any) {
                 <span className="text-gray-600">Drop-off</span>
                 <span className="font-medium text-right max-w-[60%] text-black">{formData.dropoffLocation}</span>
               </div>
+              <div className="flex justify-between border-b border-gray-200 pb-4">
+                <span className="text-gray-600">Passengers & Luggage</span>
+                <div className="text-right">
+                  <span className="font-medium text-black">{formData.passengersCount} Pax, {formData.checkedBagsCount} Bags</span>
+                </div>
+              </div>
+              {formData.carSeatsCount > 0 && (
+                <div className="flex justify-between border-b border-gray-200 pb-4 bg-green-50/50 -mx-6 px-6">
+                  <span className="text-green-700 font-medium">Child Car Seats</span>
+                  <div className="text-right">
+                    <span className="font-bold text-green-700">{formData.carSeatsCount} Seats</span>
+                    <div className="text-[10px] text-green-600">
+                      {formData.childAges.map(a => a.charAt(0).toUpperCase() + a.slice(1)).join(', ')}
+                    </div>
+                  </div>
+                </div>
+              )}
               {priceQuote && priceQuote.distanceKm > 0 && (
                 <div className="flex justify-between border-b border-gray-200 pb-4">
                   <span className="text-gray-600">Estimated Distance</span>
@@ -1036,6 +1106,73 @@ export default function BookingWizard({ user, profile }: any) {
                {discountError && <p className="text-red-500 text-xs mt-2">{discountError}</p>}
                {appliedDiscount && <p className="text-green-600 text-xs mt-2">Promo code applied successfully!</p>}
             </div>
+
+            {isSUV && (
+              <div className="bg-white border border-gray-200 p-6 rounded-xl mb-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-lg text-black">Child Car Seats</h3>
+                  <div className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded font-bold uppercase tracking-widest border border-green-100">
+                    SUV Add-on
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-6 mb-6">
+                   <div className="flex-1">
+                     <p className="text-sm text-gray-600 mb-1">Number of car seats needed</p>
+                     <p className="text-[10px] text-gray-400">Available: Up to 3 seats</p>
+                   </div>
+                   <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                     {[0, 1, 2, 3].map(num => (
+                       <button
+                         key={num}
+                         onClick={() => {
+                           const newAges = [...(formData.childAges || [])]
+                           if (num > (formData.childAges || []).length) {
+                             while (newAges.length < num) newAges.push('toddler')
+                           } else {
+                             newAges.length = num
+                           }
+                           setFormData(prev => ({ ...prev, carSeatsCount: num, childAges: newAges }))
+                         }}
+                         className={`w-10 h-10 rounded-md font-bold transition-all ${formData.carSeatsCount === num ? 'bg-black text-white shadow-lg' : 'text-gray-400 hover:bg-gray-100'}`}
+                       >
+                         {num}
+                       </button>
+                     ))}
+                   </div>
+                </div>
+
+                {formData.carSeatsCount > 0 && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    {Array.from({ length: formData.carSeatsCount }).map((_, idx) => (
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
+                            {idx + 1}
+                          </div>
+                          <span className="font-medium text-sm text-gray-700">Age of child</span>
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+                          {CHILD_AGE_RANGES.map(range => (
+                            <button
+                              key={range.id}
+                              onClick={() => {
+                                const newAges = [...(formData.childAges || [])]
+                                newAges[idx] = range.id
+                                updateFormData('childAges', newAges)
+                              }}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${formData.childAges[idx] === range.id ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-200 hover:border-black'}`}
+                            >
+                              {range.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-white border border-gray-200 p-6 rounded-xl mb-6 space-y-4">
               <h3 className="font-bold text-lg mb-4">Passenger Details</h3>

@@ -1522,17 +1522,9 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
     })
 
     // Vehicle Type Form
-    const [typeFormData, setTypeFormData] = useState<{
-        name: string
-        description: string
-        capacity_passengers: number
-        capacity_luggage: number
-        base_fare_usd: number
-        price_per_distance_usd: number
-        distance_unit: 'km' | 'mile'
-        price_per_hour_usd: number
         min_hours_booking: number
         image_url: string
+        car_seat_price_usd: number
     }>({
         name: '',
         description: '',
@@ -1543,7 +1535,8 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
         distance_unit: 'km',
         price_per_hour_usd: 80,
         min_hours_booking: 2,
-        image_url: ''
+        image_url: '',
+        car_seat_price_usd: 0
     })
 
     const handleEditType = (type: any) => {
@@ -1558,7 +1551,8 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
             distance_unit: (type.distance_unit || 'km') as 'km' | 'mile',
             price_per_hour_usd: type.price_per_hour_usd,
             min_hours_booking: type.min_hours_booking || 2,
-            image_url: type.image_url || ''
+            image_url: type.image_url || '',
+            car_seat_price_usd: type.car_seat_price_usd || 0
         })
         setIsEditTypeModalOpen(true)
     }
@@ -1582,7 +1576,8 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                 distance_unit: 'km',
                 price_per_hour_usd: 80,
                 min_hours_booking: 2,
-                image_url: ''
+                image_url: '',
+                car_seat_price_usd: 0
             })
         } else {
             alert(result.error || 'Failed to update vehicle type')
@@ -1627,7 +1622,8 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                 distance_unit: 'km',
                 price_per_hour_usd: 80,
                 min_hours_booking: 2,
-                image_url: ''
+                image_url: '',
+                car_seat_price_usd: 0
             })
         } else {
             alert(result.error || 'Failed to add vehicle type')
@@ -2067,6 +2063,17 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                 />
                             </div>
 
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Car Seat Price ($)</label>
+                                <input
+                                    type="number" step="0.01"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                    placeholder="e.g. 15.00"
+                                    value={typeFormData.car_seat_price_usd}
+                                    onChange={e => setTypeFormData({ ...typeFormData, car_seat_price_usd: parseFloat(e.target.value) || 0 })}
+                                />
+                            </div>
+
                             <div className="pt-4">
                                 <button
                                     type="submit"
@@ -2197,6 +2204,17 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                     placeholder="https://images.unsplash.com/..."
                                     value={typeFormData.image_url}
                                     onChange={e => setTypeFormData({ ...typeFormData, image_url: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Car Seat Price ($)</label>
+                                <input
+                                    type="number" step="0.01"
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                                    placeholder="e.g. 15.00"
+                                    value={typeFormData.car_seat_price_usd}
+                                    onChange={e => setTypeFormData({ ...typeFormData, car_seat_price_usd: parseFloat(e.target.value) || 0 })}
                                 />
                             </div>
 

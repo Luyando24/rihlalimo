@@ -9,6 +9,7 @@ interface PricingParams {
   pickupLocation?: string
   dropoffLocation?: string
   meetAndGreet?: boolean
+  carSeatsCount?: number
 }
 
 const MEET_AND_GREET_FEE = 25.00
@@ -91,6 +92,13 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       meetAndGreetFee = MEET_AND_GREET_FEE
     }
 
+    // 5c. Car Seat Fee
+    let carSeatFeeTotal = 0
+    if (params.carSeatsCount && params.carSeatsCount > 0) {
+      const pricePerSeat = Number(vehicleType.car_seat_price_usd) || 0
+      carSeatFeeTotal = params.carSeatsCount * pricePerSeat
+    }
+
     // Base calculation: Start with base fare
     let total = Number(vehicleType.base_fare_usd)
     
@@ -114,7 +122,8 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       const timeCharge = (params.durationMinutes * (timeRate / 60))
       
       // Add distance and time charges to base fare
-      total += distanceCharge + timeCharge + airportFee + meetAndGreetFee
+      // Add distance and time charges to base fare plus extras
+      total += distanceCharge + timeCharge + airportFee + meetAndGreetFee + carSeatFeeTotal
       
       // Log for debugging (only in development)
       if (process.env.NODE_ENV === 'development') {
@@ -130,6 +139,7 @@ export async function calculateFare(params: PricingParams): Promise<number> {
           timeCharge,
           airportFee,
           meetAndGreetFee,
+          carSeatFeeTotal,
           totalBeforeMultipliers: total
         })
       }
@@ -143,7 +153,7 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       // params.durationMinutes comes from (hours * 60) in actions.ts, so it reflects user selection
       const billableHours = Math.max(hours, minHours)
       
-      total = billableHours * ratePerHour
+      total = (billableHours * ratePerHour) + airportFee + meetAndGreetFee + carSeatFeeTotal
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`Hourly Calculation: ${billableHours} hours @ $${ratePerHour}/hr`, {
