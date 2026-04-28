@@ -1,6 +1,6 @@
 'use client'
 
-import { LucideArrowRight, LucideMapPin, LucideClock } from 'lucide-react'
+import { LucideMapPin, LucideClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
@@ -31,9 +31,8 @@ export default function Hero() {
     const name = place.name || '';
     const components = place.address_components || [];
 
-    // 1. Clean the formatted address of plus codes
-    // Regex for plus codes (both long 8FVC9G8F+6X and short 9G8F+6X)
-    let cleaned = formatted.replace(/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,}(,\s*)?/, '').trim();
+    // 2. If the 'name' is a specific place (not a plus code and not just a street number)
+    const cleaned = formatted.replace(/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,}(,\s*)?/, '').trim();
 
     // 2. If the 'name' is a specific place (not a plus code and not just a street number)
     // and it's not already at the start of the cleaned address
@@ -111,7 +110,7 @@ export default function Hero() {
       const circle = new google.maps.Circle({ center, radius: 80000 })
       const bounds = circle.getBounds()
       const geocoder = new google.maps.Geocoder()
-      let country: string | undefined = undefined
+      const country: string | undefined = undefined
       try {
         const result = await geocoder.geocode({ location: center })
         const res = result.results?.[0]

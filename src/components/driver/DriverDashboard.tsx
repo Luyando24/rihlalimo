@@ -10,7 +10,6 @@ import {
   LucideLogOut, 
   LucideBell, 
   LucideMenu, 
-  LucideX,
   LucideMapPin,
   LucideNavigation,
   LucideDollarSign,
@@ -18,11 +17,23 @@ import {
   LucideCheckCircle,
   LucidePlane
 } from 'lucide-react'
-import Link from 'next/link'
 import { signout } from '@/app/login/actions'
 import { acceptTrip, startTrip, completeTrip } from '@/app/driver/actions'
 
-export default function DriverDashboard({ profile, bookings, stats }: any) {
+import { Database } from '@/types/supabase'
+
+type Profile = Database['public']['Tables']['profiles']['Row']
+type Booking = Database['public']['Tables']['bookings']['Row']
+
+interface DriverDashboardProps {
+    profile: Profile;
+    bookings: Booking[];
+    stats: {
+        todaysEarnings: number;
+    };
+}
+
+export default function DriverDashboard({ profile, bookings, stats }: DriverDashboardProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isOnline, setIsOnline] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -165,7 +176,7 @@ export default function DriverDashboard({ profile, bookings, stats }: any) {
   )
 }
 
-function NavItem({ icon, label, active, onClick }: any) {
+function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
     return (
         <button 
             onClick={onClick}
@@ -180,7 +191,7 @@ function NavItem({ icon, label, active, onClick }: any) {
     )
 }
 
-function DashboardView({ bookings, stats, isOnline }: any) {
+function DashboardView({ bookings, stats, isOnline }: { bookings: Booking[], stats: DriverDashboardProps['stats'], isOnline: boolean }) {
     return (
         <div className="space-y-6">
             {/* Stats Grid */}
@@ -224,7 +235,7 @@ function DashboardView({ bookings, stats, isOnline }: any) {
                 <h3 className="text-lg font-bold mb-4">Upcoming Schedule</h3>
                 {bookings && bookings.length > 0 ? (
                     <div className="space-y-4">
-                        {bookings.map((booking: any) => (
+                        {bookings.map((booking: Booking) => (
                             <TripCard key={booking.id} booking={booking} />
                         ))}
                     </div>
@@ -238,13 +249,13 @@ function DashboardView({ bookings, stats, isOnline }: any) {
     )
 }
 
-function TripsView({ bookings }: any) {
+function TripsView({ bookings }: { bookings: Booking[] }) {
     return (
         <div>
              <h3 className="text-lg font-bold mb-6">Your Trips</h3>
              <div className="space-y-4">
                 {bookings && bookings.length > 0 ? (
-                    bookings.map((booking: any) => (
+                    bookings.map((booking: Booking) => (
                         <TripCard key={booking.id} booking={booking} />
                     ))
                 ) : (
@@ -255,7 +266,7 @@ function TripsView({ bookings }: any) {
     )
 }
 
-function StatCard({ label, value, icon }: any) {
+function StatCard({ label, value, icon }: { label: string, value: string | number, icon: React.ReactNode }) {
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-2 text-gray-500">
@@ -268,7 +279,7 @@ function StatCard({ label, value, icon }: any) {
 }
 
 
-function TripCard({ booking }: any) {
+function TripCard({ booking }: { booking: Booking }) {
     const [loading, setLoading] = useState(false)
     const isHourly = booking.service_type === 'hourly'
     const isAirport = booking.service_type === 'airport_pickup' || booking.service_type === 'airport_dropoff'

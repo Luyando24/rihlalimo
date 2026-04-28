@@ -9,7 +9,6 @@ import {
   LucideLogOut, 
   LucideMenu, 
   LucidePlus,
-  LucideMapPin,
   LucideClock,
   LucidePlane,
   LucideCheckCircle,
@@ -23,7 +22,24 @@ import Link from 'next/link'
 import { signout } from '@/app/login/actions'
 import { updateProfile } from '@/app/dashboard/actions'
 
-export default function CustomerDashboard({ profile, bookings, stats }: any) {
+import { Database } from '@/types/supabase'
+
+type Profile = Database['public']['Tables']['profiles']['Row']
+type Booking = Database['public']['Tables']['bookings']['Row'] & {
+    vehicle_types?: { name: string } | null;
+}
+
+interface CustomerDashboardProps {
+    profile: Profile;
+    bookings: Booking[];
+    stats: {
+        totalTrips: number;
+        upcomingTrips: number;
+        totalSpent: number;
+    };
+}
+
+export default function CustomerDashboard({ profile, bookings, stats }: CustomerDashboardProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
 
@@ -142,7 +158,7 @@ export default function CustomerDashboard({ profile, bookings, stats }: any) {
   )
 }
 
-function NavItem({ icon, label, active, onClick }: any) {
+function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
     return (
         <button 
             onClick={onClick}
@@ -157,8 +173,8 @@ function NavItem({ icon, label, active, onClick }: any) {
     )
 }
 
-function DashboardView({ bookings, stats }: any) {
-    const upcomingBookings = bookings.filter((b: any) => ['pending', 'confirmed', 'assigned', 'on_route', 'arrived', 'picked_up'].includes(b.status))
+function DashboardView({ bookings, stats }: { bookings: Booking[], stats: CustomerDashboardProps['stats'], onBookRide: () => void }) {
+    const upcomingBookings = bookings.filter((b: Booking) => ['pending', 'confirmed', 'assigned', 'on_route', 'arrived', 'picked_up'].includes(b.status || ''))
     
     return (
         <div className="space-y-8">
@@ -193,7 +209,7 @@ function DashboardView({ bookings, stats }: any) {
                     
                     {upcomingBookings.length > 0 ? (
                         <div className="space-y-4">
-                            {upcomingBookings.map((booking: any) => (
+                            {upcomingBookings.map((booking: Booking) => (
                                 <TripCard key={booking.id} booking={booking} />
                             ))}
                         </div>
@@ -232,7 +248,7 @@ function DashboardView({ bookings, stats }: any) {
     )
 }
 
-function TripsView({ bookings }: any) {
+function TripsView({ bookings }: { bookings: Booking[] }) {
     return (
         <div className="space-y-6">
              <div className="flex justify-between items-center">
@@ -240,7 +256,7 @@ function TripsView({ bookings }: any) {
             </div>
              <div className="space-y-4">
                 {bookings && bookings.length > 0 ? (
-                    bookings.map((booking: any) => (
+                    bookings.map((booking: Booking) => (
                         <TripCard key={booking.id} booking={booking} />
                     ))
                 ) : (
@@ -251,7 +267,7 @@ function TripsView({ bookings }: any) {
     )
 }
 
-function ProfileView({ profile }: any) {
+function ProfileView({ profile }: { profile: Profile }) {
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -280,7 +296,7 @@ function ProfileView({ profile }: any) {
                 // Profile prop will be stale until page refresh, but that's okay for now or we can optimistically update
                 // In a real app, we might use router.refresh() but the server action already does revalidatePath
             }
-        } catch (err) {
+        } catch {
             setError('An unexpected error occurred')
         } finally {
             setLoading(false)
@@ -416,7 +432,7 @@ function ProfileView({ profile }: any) {
     )
 }
 
-function StatCard({ label, value, icon }: any) {
+function StatCard({ label, value, icon }: { label: string, value: string | number, icon: React.ReactNode }) {
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center shrink-0">
@@ -430,7 +446,7 @@ function StatCard({ label, value, icon }: any) {
     )
 }
 
-function TripCard({ booking }: any) {
+function TripCard({ booking }: { booking: Booking }) {
     const isHourly = booking.service_type === 'hourly'
     const isAirport = booking.service_type === 'airport_pickup' || booking.service_type === 'airport_dropoff'
     

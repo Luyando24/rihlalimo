@@ -747,6 +747,7 @@ export default function BookingWizard({ user, profile }: any) {
           </div>
         )}
 
+        {step === 3 && (
           <div className="space-y-6">
             <h2 className="text-2xl font-light mb-6 text-black">Ride Details</h2>
 

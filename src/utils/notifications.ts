@@ -22,7 +22,7 @@ export async function sendAdminNewBookingEmail(bookingId: string) {
     }
 
     // 2. Fetch all admin users from the profiles table
-    const { data: admins, error: adminError } = await supabase
+    const { data: admins } = await supabase
         .from('profiles')
         .select('email')
         .eq('role', 'admin')
@@ -65,6 +65,64 @@ export async function sendAdminNewBookingEmail(bookingId: string) {
     })
 }
 
+export async function sendAdminNewDriverSignupEmail(driverId: string) {
+    const supabase = await createClient()
+    
+    // 1. Fetch driver profile details
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, email, phone')
+        .eq('id', driverId)
+        .single()
+
+    if (profileError || !profile) {
+        console.error('Error fetching driver profile for admin notification:', profileError)
+        return
+    }
+
+    // 2. Fetch all admin users
+    const { data: admins } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('role', 'admin')
+
+    const adminEmails = admins ? admins.map(a => a.email).filter(email => !!email) : []
+
+    if (process.env.ADMIN_EMAIL && !adminEmails.includes(process.env.ADMIN_EMAIL)) {
+        adminEmails.push(process.env.ADMIN_EMAIL)
+    }
+
+    if (adminEmails.length === 0) {
+        console.error('No admin email addresses found for driver signup notification.')
+        return
+    }
+
+    const subject = `New Driver Signup: ${profile.full_name}`
+
+    const content = `
+        <p>A new driver has completed onboarding and is awaiting your approval.</p>
+        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #eee;">
+            <p style="margin: 5px 0;"><strong>Name:</strong> ${profile.full_name}</p>
+            <p style="margin: 5px 0;"><strong>Email:</strong> ${profile.email}</p>
+            <p style="margin: 5px 0;"><strong>Phone:</strong> ${profile.phone || 'Not provided'}</p>
+        </div>
+        <p>Please log in to the admin dashboard to review their license details and approve their account.</p>
+    `
+
+    const html = getEmailTemplate(
+        'New Driver Awaiting Approval',
+        content,
+        `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin`,
+        'Review Driver in Dashboard'
+    )
+
+    await sendEmail({
+        to: adminEmails.join(','),
+        subject,
+        html
+    })
+}
+
 export async function sendAssignmentEmail(bookingId: string, driverId: string) {
     const supabase = await createClient()
     
@@ -81,7 +139,7 @@ export async function sendAssignmentEmail(bookingId: string, driverId: string) {
     }
 
     // Get Booking Details
-    const { data: booking, error: bookingError } = await supabase
+    const { data: booking } = await supabase
         .from('bookings')
         .select(`
             *,

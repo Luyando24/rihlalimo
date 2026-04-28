@@ -472,6 +472,14 @@ export async function deleteTimeMultiplier(id: string) {
   return { success: true }
 }
 
+export async function addVehicleType(formData: {
+  name: string
+  description?: string
+  capacity_passengers: number
+  capacity_luggage: number
+  base_fare_usd: number
+  price_per_distance_usd: number
+  distance_unit: 'km' | 'mile'
   price_per_hour_usd: number
   min_hours_booking: number
   image_url?: string
@@ -491,6 +499,14 @@ export async function deleteTimeMultiplier(id: string) {
   return { success: true, vehicleType: data[0] }
 }
 
+export async function updateVehicleType(id: string, formData: {
+  name?: string
+  description?: string
+  capacity_passengers?: number
+  capacity_luggage?: number
+  base_fare_usd?: number
+  price_per_distance_usd?: number
+  distance_unit?: 'km' | 'mile'
   price_per_hour_usd?: number
   min_hours_booking?: number
   image_url?: string

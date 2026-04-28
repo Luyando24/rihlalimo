@@ -72,16 +72,35 @@ import {
 import { createNewsPost, deleteNewsPost, updateNewsPost } from '@/app/admin/news-actions'
 import { createClient } from '@/utils/supabase/client'
 import RichTextEditor from './RichTextEditor'
+import { Database } from '@/types/supabase'
+
+type Profile = Database['public']['Tables']['profiles']['Row']
+type Booking = Database['public']['Tables']['bookings']['Row'] & {
+    vehicle_types?: { name: string } | null;
+    profiles?: { full_name: string | null; email: string | null; phone: string | null } | null;
+    driver?: { full_name: string | null; phone: string | null } | null;
+}
+type Driver = Database['public']['Tables']['drivers']['Row'] & {
+    profiles?: { full_name: string | null; email: string | null; phone: string | null } | null;
+}
+type Customer = Profile
+type Admin = Profile
+type Vehicle = Database['public']['Tables']['vehicles']['Row'] & {
+    vehicle_types?: { name: string } | null;
+}
+type VehicleType = Database['public']['Tables']['vehicle_types']['Row']
+type NewsPost = Database['public']['Tables']['stripe_events']['Row'] // Fallback if no news table, or check actual table name
+type Discount = { id: string; code: string; type: 'percentage' | 'fixed'; value: number; active: boolean }
 
 interface AdminDashboardProps {
-  profile: any;
-  bookings: any[];
-  drivers: any[];
-  customers: any[];
-  admins: any[];
-  fleet: any[];
-  vehicleTypes: any[];
-  settings: any;
+  profile: Profile;
+  bookings: Booking[];
+  drivers: Driver[];
+  customers: Customer[];
+  admins: Admin[];
+  fleet: Vehicle[];
+  vehicleTypes: VehicleType[];
+  settings: any; // Keep any for complex JSON settings for now
   stats: any;
   newsPosts?: any[];
   discounts?: any[];
@@ -102,12 +121,12 @@ export default function AdminDashboard({
 }: AdminDashboardProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [activeTab, setActiveTab] = useState('dashboard')
-    const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
     const [editingNewsPost, setEditingNewsPost] = useState<any>(null)
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
 
-    const handleViewCustomerHistory = (customer: any) => {
+    const handleViewCustomerHistory = (customer: Customer) => {
         setSelectedCustomer(customer)
         setActiveTab('customer_history')
     }
@@ -1521,7 +1540,15 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
         status: 'active'
     })
 
-    // Vehicle Type Form
+    const [typeFormData, setTypeFormData] = useState<{
+        name: string
+        description: string
+        capacity_passengers: number
+        capacity_luggage: number
+        base_fare_usd: number
+        price_per_distance_usd: number
+        distance_unit: 'km' | 'mile'
+        price_per_hour_usd: number
         min_hours_booking: number
         image_url: string
         car_seat_price_usd: number

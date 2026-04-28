@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Car, User, Grid, Calendar } from 'lucide-react'
+import { Home, Car, User, Grid } from 'lucide-react'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface BottomNavProps {
