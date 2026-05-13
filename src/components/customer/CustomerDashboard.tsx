@@ -480,7 +480,7 @@ function TripCard({ booking }: { booking: Booking }) {
                     </div>
                  </div>
                  <div className="flex flex-wrap items-center gap-2">
-                    {getStatusBadge(booking.status)}
+                    {getStatusBadge(booking.status || 'pending')}
                     <span className="px-3 py-1 bg-gray-100 text-xs font-bold rounded-full uppercase">
                         {booking.service_type.replace(/_/g, ' ')}
                     </span>
@@ -509,7 +509,7 @@ function TripCard({ booking }: { booking: Booking }) {
                     {isHourly && (
                         <div className="flex justify-between">
                             <span className="text-gray-500">Duration</span>
-                            <span className="font-medium">{Math.round(booking.duration_minutes_estimated / 60)} Hours</span>
+                            <span className="font-medium">{Math.round((booking.duration_minutes_estimated || 0) / 60)} Hours</span>
                         </div>
                     )}
                     {(isAirport && booking.flight_number) && (

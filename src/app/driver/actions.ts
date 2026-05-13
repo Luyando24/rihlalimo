@@ -24,7 +24,7 @@ export async function acceptTrip(bookingId: string) {
     // Update booking status
     const { error } = await supabase
         .from('bookings')
-        .update({ status: 'driver_accepted' }) 
+        .update({ status: 'en_route' }) 
         .eq('id', bookingId)
         .eq('driver_id', user.id) // Ensure the driver owns this booking
 

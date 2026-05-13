@@ -38,6 +38,7 @@ export interface BookingFormData {
   minutes?: number;
   passengerName?: string;
   passengerPhone?: string;
+  passengerEmail?: string;
   notes?: string;
   promoCode?: string | null;
   discountId?: string | null;
@@ -57,7 +58,7 @@ export async function getVehicleTypes() {
   }
   return data
 }
-
+export async function getQuoteAction(data: BookingFormData & {
   meetAndGreet?: boolean
   hours?: number
   carSeatsCount?: number
@@ -205,9 +206,6 @@ export async function initializePaymentAction(bookingData: BookingFormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) {
-    return { success: false, error: 'User not authenticated' }
-  }
 
   // 1. Re-calculate price server-side
   const quoteResult = await getQuoteAction(bookingData)
@@ -243,7 +241,7 @@ export async function initializePaymentAction(bookingData: BookingFormData) {
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         metadata: {
-            customer_id: user.id,
+            customer_id: user?.id || 'guest',
             promo_code: bookingData.promoCode || ''
         }
         })
@@ -273,9 +271,6 @@ export async function createBookingAction(bookingData: BookingFormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  if (!user) {
-    return { success: false, error: 'User not authenticated' }
-  }
 
   // 1. Re-calculate price server-side
   const quoteResult = await getQuoteAction(bookingData)
@@ -313,7 +308,7 @@ export async function createBookingAction(bookingData: BookingFormData) {
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
-        customer_id: user.id,
+        customer_id: user?.id || null,
         vehicle_type_id: bookingData.vehicleTypeId,
         service_type: bookingData.serviceType,
         pickup_location_address: bookingData.pickupLocation,
@@ -329,6 +324,7 @@ export async function createBookingAction(bookingData: BookingFormData) {
         meet_and_greet: bookingData.meetAndGreet || false,
         passenger_name: bookingData.passengerName,
         passenger_phone: bookingData.passengerPhone,
+        passenger_email: bookingData.passengerEmail,
         notes: bookingData.notes,
         discount_id: appliedDiscountId,
         promo_code: bookingData.promoCode || null,

@@ -210,17 +210,13 @@ export default function Hero() {
                 </div>
               </div>
 
-              {/* Time Selection */}
-              <div className="flex gap-2">
+              {/* Time Selection Note */}
+              <div className="flex flex-col gap-2">
                 <div className="relative w-full">
-                  <select
-                    className="w-full py-3 px-4 bg-gray-100 rounded-lg text-left font-medium appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-black text-black"
-                    defaultValue="now"
-                  >
-                    <option value="now">Pickup now</option>
-                    <option value="later">Schedule for later</option>
-                  </select>
-                  <LucideClock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  <div className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-lg text-left font-medium text-black flex items-center gap-2">
+                    <LucideClock className="w-4 h-4 text-black" />
+                    <span>Schedule a Pickup</span>
+                  </div>
                 </div>
               </div>
 

@@ -347,7 +347,7 @@ function TripCard({ booking }: { booking: Booking }) {
             {isHourly && (
                 <div className="mb-4 p-3 bg-blue-50 text-blue-900 rounded-lg text-sm flex items-center gap-2">
                     <LucideClock size={16} />
-                    <span>Duration: <strong>{Math.round(booking.duration_minutes_estimated / 60)} Hours</strong></span>
+                    <span>Duration: <strong>{Math.round((booking.duration_minutes_estimated || 0) / 60)} Hours</strong></span>
                 </div>
             )}
             
@@ -381,7 +381,7 @@ function TripCard({ booking }: { booking: Booking }) {
                                 Accept Trip
                             </button>
                         )}
-                        {booking.status === 'driver_accepted' && (
+                        {booking.status === 'en_route' && (
                             <button 
                                 onClick={handleStart}
                                 className="px-4 py-2 bg-green-600 text-white text-sm font-bold rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
@@ -410,9 +410,9 @@ function TripCard({ booking }: { booking: Booking }) {
                             </span>
                         )}
                         {/* Fallback for other statuses */}
-                        {!['assigned', 'driver_accepted', 'in_progress', 'completed', 'cancelled'].includes(booking.status) && (
+                        {!['assigned', 'en_route', 'in_progress', 'completed', 'cancelled'].includes(booking.status || '') && (
                             <span className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-full uppercase">
-                                {booking.status.replace('_', ' ')}
+                                {(booking.status || 'pending').replace('_', ' ')}
                             </span>
                         )}
                     </div>

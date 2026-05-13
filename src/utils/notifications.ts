@@ -45,7 +45,7 @@ export async function sendAdminNewBookingEmail(bookingId: string) {
     const content = `
         <p>A new booking has been received through the portal.</p>
         ${formatBookingDetails(booking)}
-        <p><strong>Customer:</strong> ${booking.profiles?.full_name} (${booking.profiles?.phone})</p>
+        <p><strong>Customer:</strong> ${booking.passenger_name || booking.profiles?.full_name} (${booking.passenger_phone || booking.profiles?.phone})</p>
         <p><strong>Amount:</strong> $${booking.total_price_calculated}</p>
         ${booking.notes ? `<p><strong>Notes:</strong> ${booking.notes}</p>` : ''}
     `
@@ -139,7 +139,7 @@ export async function sendAssignmentEmail(bookingId: string, driverId: string) {
     }
 
     // Get Booking Details
-    const { data: booking } = await supabase
+    const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .select(`
             *,
@@ -202,7 +202,7 @@ export async function sendCustomerBookingConfirmationEmail(bookingId: string) {
         return { success: false, error: 'Booking not found' }
     }
 
-    if (!booking.profiles?.email) {
+    if (!booking.passenger_email && !booking.profiles?.email) {
         console.error('Customer email not found')
         return { success: false, error: 'Customer email not found' }
     }
@@ -210,7 +210,7 @@ export async function sendCustomerBookingConfirmationEmail(bookingId: string) {
     const subject = `Booking Confirmed: ${booking.pickup_location_address.split(',')[0]}`
     
     const content = `
-        <p>Hello <strong>${booking.profiles.full_name || 'Valued Customer'}</strong>,</p>
+        <p>Hello <strong>${booking.passenger_name || booking.profiles?.full_name || 'Valued Customer'}</strong>,</p>
         <p>Thank you for choosing Rihla Limo. Your booking has been received and confirmed. Our team is now assigning a chauffeur for your trip.</p>
         ${formatBookingDetails(booking)}
         <p>You will receive another update as soon as your chauffeur has been assigned.</p>
@@ -238,7 +238,7 @@ You can view your booking details by logging into your account.
     `.trim()
 
     return await sendEmail({
-        to: booking.profiles.email,
+        to: booking.passenger_email || booking.profiles.email,
         subject,
         html,
         text
@@ -273,7 +273,7 @@ export async function sendCustomerBookingStatusUpdateEmail(bookingId: string) {
         return { success: false, error: 'Booking not found' }
     }
 
-    if (!booking.profiles?.email) {
+    if (!booking.passenger_email && !booking.profiles?.email) {
         console.error('Customer email not found')
         return { success: false, error: 'Customer email not found' }
     }
@@ -313,7 +313,7 @@ export async function sendCustomerBookingStatusUpdateEmail(bookingId: string) {
     const subject = `${statusSubject}: ${booking.pickup_location_address.split(',')[0]}`
     
     const content = `
-        <p>Hello <strong>${booking.profiles.full_name || 'Valued Customer'}</strong>,</p>
+        <p>Hello <strong>${booking.passenger_name || booking.profiles?.full_name || 'Valued Customer'}</strong>,</p>
         <p>${statusMessage}</p>
         ${formatBookingDetails(booking)}
     `
@@ -337,7 +337,7 @@ Dropoff: ${booking.dropoff_location_address}
     `.trim()
 
     return await sendEmail({
-        to: booking.profiles.email,
+        to: booking.passenger_email || booking.profiles.email,
         subject,
         html,
         text

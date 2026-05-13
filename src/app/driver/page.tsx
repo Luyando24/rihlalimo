@@ -9,7 +9,7 @@ export default async function DriverPage() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
 
   if (profile?.role !== 'driver') {
     return (
@@ -51,7 +51,7 @@ export default async function DriverPage() {
   return (
     <DriverDashboard 
         profile={profile}
-        bookings={bookings}
+        bookings={bookings || []}
         stats={stats}
     />
   )

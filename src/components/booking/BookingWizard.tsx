@@ -30,15 +30,18 @@ export default function BookingWizard({ user, profile }: any) {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState(() => {
     const now = new Date()
+    // Add 100 minutes for default scheduling
+    const future = new Date(now.getTime() + 100 * 60000)
+    
     // Format date as YYYY-MM-DD in local time
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
+    const year = future.getFullYear()
+    const month = String(future.getMonth() + 1).padStart(2, '0')
+    const day = String(future.getDate()).padStart(2, '0')
     const dateStr = `${year}-${month}-${day}`
 
     // Format time as HH:MM in local time
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const hours = String(future.getHours()).padStart(2, '0')
+    const minutes = String(future.getMinutes()).padStart(2, '0')
     const timeStr = `${hours}:${minutes}`
 
     return {
@@ -60,6 +63,7 @@ export default function BookingWizard({ user, profile }: any) {
       hours: 3,
       passengerName: profile?.full_name || user?.user_metadata?.full_name || '',
       passengerPhone: profile?.phone || user?.user_metadata?.phone || '',
+      passengerEmail: profile?.email || user?.email || '',
       notes: ''
     }
   })
@@ -308,7 +312,7 @@ export default function BookingWizard({ user, profile }: any) {
     }
   }
 
-  const [isPickupNow, setIsPickupNow] = useState(true)
+  const [isPickupNow, setIsPickupNow] = useState(false)
 
   const updateFormData = (key: string, value: any) => {
     setFormData(prev => {
@@ -319,10 +323,6 @@ export default function BookingWizard({ user, profile }: any) {
       return newState
     })
 
-    // If date or time is manually changed, disable "Pickup now"
-    if (key === 'date' || key === 'time') {
-      setIsPickupNow(false)
-    }
 
     if (errors[key]) {
       setErrors(prev => {
@@ -333,27 +333,6 @@ export default function BookingWizard({ user, profile }: any) {
     }
   }
 
-  const handlePickupNowToggle = () => {
-    if (!isPickupNow) {
-      // Switching back to Pickup Now - update to current time
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const dateStr = `${year}-${month}-${day}`
-
-      const hours = String(now.getHours()).padStart(2, '0')
-      const minutes = String(now.getMinutes()).padStart(2, '0')
-      const timeStr = `${hours}:${minutes}`
-
-      updateFormData('date', dateStr)
-      updateFormData('time', timeStr)
-      setIsPickupNow(true)
-    } else {
-      // Switching to Schedule Later - just toggle flag, keep current values as starting point
-      setIsPickupNow(false)
-    }
-  }
 
   const validateStep = (currentStep: number) => {
     const newErrors: Record<string, string> = {}
@@ -368,17 +347,17 @@ export default function BookingWizard({ user, profile }: any) {
       if (!formData.date) newErrors.date = 'Date is required'
       if (!formData.time) newErrors.time = 'Time is required'
 
-      // Basic date validation - must be today or in the future
-      if (formData.date) {
-        // Create date object in local timezone to avoid UTC shifts
+      // Basic date and time validation - must be at least 90 minutes in the future
+      if (formData.date && formData.time) {
         const [year, month, day] = formData.date.split('-').map(Number)
-        const selectedDate = new Date(year, month - 1, day)
+        const [hours, minutes] = formData.time.split(':').map(Number)
+        
+        // Create date object in local timezone
+        const selectedDateTime = new Date(year, month - 1, day, hours, minutes)
+        const minimumAllowedTime = new Date(Date.now() + 90 * 60000)
 
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-
-        if (selectedDate < today) {
-          newErrors.date = 'Date cannot be in the past'
+        if (selectedDateTime < minimumAllowedTime) {
+          newErrors.time = 'Pickup must be at least 90 minutes from now'
         }
       }
 
@@ -402,6 +381,12 @@ export default function BookingWizard({ user, profile }: any) {
     } else if (currentStep === 4) { // Payment
       if (!formData.passengerName.trim()) newErrors.passengerName = 'Passenger name is required'
       if (!formData.passengerPhone.trim()) newErrors.passengerPhone = 'Passenger phone number is required'
+      if (!formData.passengerEmail.trim()) newErrors.passengerEmail = 'Email address is required'
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (formData.passengerEmail && !emailRegex.test(formData.passengerEmail)) {
+        newErrors.passengerEmail = 'Invalid email address'
+      }
     }
 
     setErrors(newErrors)
@@ -409,19 +394,26 @@ export default function BookingWizard({ user, profile }: any) {
   }
 
   const nextStep = async () => {
-    // If Pickup Now is selected, refresh time to current moment before validating
+    // If Pickup Now is selected, refresh time to 100 minutes from now before validating
     if (step === 3 && isPickupNow) {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const day = String(now.getDate()).padStart(2, '0')
-      const dateStr = `${year}-${month}-${day}`
-
-      const hours = String(now.getHours()).padStart(2, '0')
-      const minutes = String(now.getMinutes()).padStart(2, '0')
-      const timeStr = `${hours}:${minutes}`
+      const future = new Date(Date.now() + 100 * 60000)
+      const dateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
+      const timeStr = `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
 
       // Update state correctly via setter
+      setFormData(prev => ({
+        ...prev,
+        date: dateStr,
+        time: timeStr
+      }))
+    }
+
+    // Refresh default time when entering Step 3 (Details) from Step 2
+    if (step === 2) {
+      const future = new Date(Date.now() + 100 * 60000)
+      const dateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
+      const timeStr = `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
+
       setFormData(prev => ({
         ...prev,
         date: dateStr,
@@ -496,16 +488,7 @@ export default function BookingWizard({ user, profile }: any) {
       return
     }
 
-    if (!user) {
-      // Save state to localStorage so we can restore it after login
-      localStorage.setItem('rihla_pending_booking', JSON.stringify({
-        formData,
-        step: 4
-      }))
-      // Redirect to login page and pass a redirect parameter
-      window.location.href = '/login?redirect=/book'
-      return
-    }
+    // Auth check removed to allow guest bookings
 
     setLoadingBooking(true)
     const result = await initializePaymentAction({
@@ -925,58 +908,38 @@ export default function BookingWizard({ user, profile }: any) {
               )}
 
               <div>
-                <label className="label">Pickup Time</label>
-                {!isPickupNow ? (
-                  <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">Date</label>
-                        <div className="relative">
-                          <LucideCalendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                          <input
-                            type="date"
-                            className={`input-field pl-9 py-2 text-sm ${errors.date ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
-                            value={formData.date}
-                            onChange={(e) => updateFormData('date', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">Time</label>
+                <label className="label">Pickup Time (90 minutes from now)</label>
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Date</label>
+                      <div className="relative">
+                        <LucideCalendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                         <input
-                          type="time"
-                          className={`input-field py-2 text-sm ${errors.time ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
-                          value={formData.time}
-                          onChange={(e) => updateFormData('time', e.target.value)}
+                          type="date"
+                          className={`input-field pl-9 py-2 text-sm ${errors.date ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
+                          value={formData.date}
+                          onChange={(e) => updateFormData('date', e.target.value)}
                         />
                       </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        handlePickupNowToggle()
-                      }}
-                      className="text-xs text-blue-600 font-medium hover:underline flex items-center"
-                    >
-                      Switch to Pickup Now
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => setIsPickupNow(false)}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-black hover:bg-gray-50 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
-                        <LucideCalendar className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-black">Pickup now</p>
-                        <p className="text-xs text-gray-500">Driver will arrive ASAP</p>
-                      </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Time</label>
+                      <input
+                        type="time"
+                        className={`input-field py-2 text-sm ${errors.time ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
+                        value={formData.time}
+                        onChange={(e) => updateFormData('time', e.target.value)}
+                      />
                     </div>
-                    <span className="text-sm font-medium text-gray-400">Schedule for later &rarr;</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-2 px-2 py-1 bg-white rounded border border-gray-100 mt-2">
+                    <LucideInfo size={14} className="text-gray-400" />
+                    <p className="text-[10px] text-gray-500 italic">
+                      * Estimated chauffeur arrival time: 90 minutes
+                    </p>
+                  </div>
+                </div>
                 {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
                 {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}
               </div>
@@ -1207,6 +1170,20 @@ export default function BookingWizard({ user, profile }: any) {
                   {errors.passengerPhone && <p className="text-red-500 text-xs mt-1">{errors.passengerPhone}</p>}
                 </div>
                 <div className="md:col-span-2">
+                  <label className="label">Passenger Email</label>
+                  <div className="relative">
+                    <LucideInfo className="absolute left-3 top-3 w-5 h-5 text-gray-400 z-10" />
+                    <input
+                      type="email"
+                      className={`input-field pl-10 ${errors.passengerEmail ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
+                      placeholder="Email Address"
+                      value={formData.passengerEmail}
+                      onChange={(e) => updateFormData('passengerEmail', e.target.value)}
+                    />
+                  </div>
+                  {errors.passengerEmail && <p className="text-red-500 text-xs mt-1">{errors.passengerEmail}</p>}
+                </div>
+                <div className="md:col-span-2">
                   <label className="label">Notes for Driver (Optional)</label>
                   <textarea
                     className="input-field h-24 py-2"
@@ -1235,17 +1212,8 @@ export default function BookingWizard({ user, profile }: any) {
                   </>
                 ) : (
                   <>
-                    {!user ? (
-                      <>
-                        <LucideUsers size={18} />
-                        Login to Continue
-                      </>
-                    ) : (
-                      <>
-                        <LucideCreditCard size={18} />
-                        Proceed to Payment
-                      </>
-                    )}
+                    <LucideCreditCard size={18} />
+                    {user ? 'Proceed to Payment' : 'Proceed to Checkout'}
                   </>
                 )}
               </button>
