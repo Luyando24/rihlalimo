@@ -21,6 +21,12 @@ alter table public.vehicle_types
     and complimentary_wait_minutes >= 0
   ) not valid;
 
+-- Preserve the legacy behavior for vehicle types that have not yet been given
+-- an explicit driving-minute rate, while making the stored/displayed value honest.
+update public.vehicle_types
+set price_per_minute_usd = round(price_per_hour_usd / 60.0, 2)
+where price_per_minute_usd = 0;
+
 -- Uber Black-equivalent Sedan rate card.
 update public.vehicle_types
 set

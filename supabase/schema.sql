@@ -102,7 +102,7 @@ create table public.pricing_rules (
   id uuid default uuid_generate_v4() primary key,
   name text not null, -- e.g. 'Standard', 'Holiday', 'Rush Hour'
   description text,
-  multiplier decimal(3,2) default 1.0,
+  multiplier decimal(3,2) default 1.0 check (multiplier > 0),
   is_active boolean default false,
   effective_start timestamp with time zone,
   effective_end timestamp with time zone,
@@ -150,8 +150,8 @@ create table public.time_multipliers (
     id uuid default uuid_generate_v4() primary key,
     start_time time not null,
     end_time time not null,
-    multiplier decimal(3,2) not null,
-    day_of_week int, -- 0-6, null for every day
+    multiplier decimal(3,2) not null check (multiplier > 0),
+    day_of_week int check (day_of_week between 0 and 6), -- null for every day
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

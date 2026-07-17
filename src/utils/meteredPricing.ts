@@ -25,6 +25,23 @@ export interface MeteredFareBreakdown {
   total: number
 }
 
+export interface FareCompositionInput {
+  rideFare: number
+  minimumRideFare?: number
+  timeMultiplier?: number
+  globalMultipliers?: number[]
+  fixedAddOns?: number
+  waitCharge?: number
+}
+
+export interface FareCompositionBreakdown {
+  combinedMultiplier: number
+  adjustedRideFare: number
+  fixedAddOns: number
+  waitCharge: number
+  total: number
+}
+
 function requireNonNegativeFinite(value: number, field: string) {
   if (!Number.isFinite(value) || value < 0) {
     throw new Error(`${field} must be a non-negative number`)
@@ -67,5 +84,37 @@ export function calculateMeteredFare({
     billableWaitMinutes,
     waitCharge,
     total: rideFare + waitCharge
+  }
+}
+
+export function composeFare({
+  rideFare,
+  minimumRideFare = 0,
+  timeMultiplier = 1,
+  globalMultipliers = [],
+  fixedAddOns = 0,
+  waitCharge = 0
+}: FareCompositionInput): FareCompositionBreakdown {
+  const safeRideFare = requireNonNegativeFinite(rideFare, 'rideFare')
+  const safeMinimumFare = requireNonNegativeFinite(minimumRideFare, 'minimumRideFare')
+  const safeTimeMultiplier = requireNonNegativeFinite(timeMultiplier, 'timeMultiplier')
+  const safeFixedAddOns = requireNonNegativeFinite(fixedAddOns, 'fixedAddOns')
+  const safeWaitCharge = requireNonNegativeFinite(waitCharge, 'waitCharge')
+  const safeGlobalMultipliers = globalMultipliers.map((multiplier, index) =>
+    requireNonNegativeFinite(multiplier, `globalMultipliers[${index}]`)
+  )
+
+  const combinedMultiplier = safeGlobalMultipliers.reduce(
+    (combined, multiplier) => combined * multiplier,
+    safeTimeMultiplier
+  )
+  const adjustedRideFare = Math.max(safeRideFare * combinedMultiplier, safeMinimumFare)
+
+  return {
+    combinedMultiplier,
+    adjustedRideFare,
+    fixedAddOns: safeFixedAddOns,
+    waitCharge: safeWaitCharge,
+    total: adjustedRideFare + safeFixedAddOns + safeWaitCharge
   }
 }

@@ -2403,7 +2403,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
     })
 
     const tabs = [
-        { id: 'pricing', label: 'Pricing Rules' },
+        { id: 'pricing', label: 'Global Multipliers' },
         { id: 'rates', label: 'Hourly Rates' },
         { id: 'airport', label: 'Airport Fees' },
         { id: 'time', label: 'Time Multipliers' },
@@ -2560,7 +2560,10 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
             {activeSection === 'pricing' && (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-bold text-lg">Global Pricing Rules</h3>
+                        <div>
+                            <h3 className="font-bold text-lg">Global Fare Multipliers</h3>
+                            <p className="text-xs text-gray-500 mt-1">Applies to every vehicle ride fare while active. Use Time Multipliers for hours or weekdays.</p>
+                        </div>
                         <button onClick={openAddModal} className="text-sm font-medium text-black hover:underline">+ Add Rule</button>
                     </div>
                     <div className="overflow-x-auto">
@@ -2705,7 +2708,10 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
             {activeSection === 'time' && (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-bold text-lg">Time-Based Multipliers</h3>
+                        <div>
+                            <h3 className="font-bold text-lg">Time-Based Multipliers</h3>
+                            <p className="text-xs text-gray-500 mt-1">Applies only inside the selected time and day window, before global multipliers.</p>
+                        </div>
                         <button onClick={openAddModal} className="text-sm font-medium text-black hover:underline">+ Add Rule</button>
                     </div>
                     <div className="overflow-x-auto">
@@ -2957,6 +2963,9 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                         <form onSubmit={handleAdd} className="p-6 space-y-4">
                             {activeSection === 'pricing' && (
                                 <>
+                                    <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+                                        Global multipliers apply at every time of day while active. Create rush-hour or weekday schedules under Time Multipliers instead.
+                                    </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
                                         <input
@@ -2973,6 +2982,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <input
                                             required
                                             type="number"
+                                            min="0.01"
                                             step="0.01"
                                             value={formData.multiplier || '1.0'}
                                             onChange={e => setFormData({ ...formData, multiplier: e.target.value })}
@@ -3100,6 +3110,7 @@ function SettingsView({ settings, vehicleTypes }: { settings: any, vehicleTypes:
                                         <input
                                             required
                                             type="number"
+                                            min="0.01"
                                             step="0.01"
                                             value={formData.multiplier || '1.0'}
                                             onChange={e => setFormData({ ...formData, multiplier: e.target.value })}

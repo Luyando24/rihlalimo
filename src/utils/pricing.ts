@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import { calculateMeteredFare } from '@/utils/meteredPricing'
+import { calculateMeteredFare, composeFare } from '@/utils/meteredPricing'
 
 interface PricingParams {
   serviceType: string
@@ -7,6 +7,8 @@ interface PricingParams {
   durationMinutes: number
   vehicleTypeId: string
   pickupTime: Date
+  pickupLocalDate?: string
+  pickupLocalTime?: string
   pickupLocation?: string
   dropoffLocation?: string
   meetAndGreet?: boolean
@@ -101,15 +103,23 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       carSeatFeeTotal = params.carSeatsCount * pricePerSeat
     }
 
-    // Base calculation: Start with base fare
-    let total = Number(vehicleType.base_fare_usd)
-    let minimumMeteredTotal = 0
+    // Vehicle fare and fixed charges are intentionally kept separate. Scheduled
+    // and global multipliers apply to the ride itself, not airport, meet-and-greet,
+    // car-seat, or wait charges.
+    let rideFare = Number(vehicleType.base_fare_usd)
+    let waitCharge = 0
+    let minimumRideFare = 0
+    let timeMultiplier = 1
+    const globalMultipliers: number[] = []
+    const fixedAddOnTotal = airportFee + meetAndGreetFee + carSeatFeeTotal
     
     if (params.serviceType === 'point_to_point' || params.serviceType.includes('airport')) {
       // Point-to-point and airport transfers use a metered base + miles + minutes
       // model. Hourly-service pricing remains independent below.
       const distanceRate = Number(vehicleType.price_per_distance_usd) || 0
-      const perMinuteRate = Number(vehicleType.price_per_minute_usd) || (Number(vehicleType.price_per_hour_usd) / 60) || 0
+      const perMinuteRate = vehicleType.price_per_minute_usd == null
+        ? (Number(vehicleType.price_per_hour_usd) / 60) || 0
+        : Number(vehicleType.price_per_minute_usd)
       const minimumFare = Number(vehicleType.minimum_fare_usd) || 0
       const waitPerMinute = Number(vehicleType.wait_rate_per_minute_usd) || 0
       const complimentaryWaitMinutes = Number(vehicleType.complimentary_wait_minutes) || 0
@@ -138,11 +148,9 @@ export async function calculateFare(params: PricingParams): Promise<number> {
         }
       })
 
-      const addOnTotal = airportFee + meetAndGreetFee + carSeatFeeTotal
-      total = fare.total + addOnTotal
-      // If a multiplier is below 1, it still cannot discount the metered ride
-      // below its vehicle minimum or erase explicit add-ons/wait charges.
-      minimumMeteredTotal = minimumFare + fare.waitCharge + addOnTotal
+      rideFare = fare.rideFare
+      waitCharge = fare.waitCharge
+      minimumRideFare = minimumFare
       
       // Log for debugging (only in development)
       if (process.env.NODE_ENV === 'development') {
@@ -165,7 +173,9 @@ export async function calculateFare(params: PricingParams): Promise<number> {
           airportFee,
           meetAndGreetFee,
           carSeatFeeTotal,
-          totalBeforeMultipliers: total
+          rideFareBeforeMultipliers: rideFare,
+          fixedAddOnTotal,
+          totalBeforeMultipliers: rideFare + waitCharge + fixedAddOnTotal
         })
       }
     } else if (params.serviceType === 'hourly') {
@@ -178,7 +188,7 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       // params.durationMinutes comes from (hours * 60) in actions.ts, so it reflects user selection
       const billableHours = Math.max(hours, minHours)
       
-      total = (billableHours * ratePerHour) + airportFee + meetAndGreetFee + carSeatFeeTotal
+      rideFare = billableHours * ratePerHour
       
       if (process.env.NODE_ENV === 'development') {
         console.log(`Hourly Calculation: ${billableHours} hours @ $${ratePerHour}/hr`, {
@@ -191,9 +201,22 @@ export async function calculateFare(params: PricingParams): Promise<number> {
 
     // 6. Apply Time Multipliers
     try {
-      const pickupHour = params.pickupTime.getHours()
-      const pickupMinute = params.pickupTime.getMinutes()
-      const dayOfWeek = params.pickupTime.getDay() // 0-6 (Sun-Sat)
+      let pickupHour = params.pickupTime.getHours()
+      let pickupMinute = params.pickupTime.getMinutes()
+      let dayOfWeek = params.pickupTime.getDay() // 0-6 (Sun-Sat)
+
+      // Use the customer's entered pickup clock/date for scheduled multipliers.
+      // Parsing a timezone-less Date on a cloud server can otherwise shift a
+      // 06:00 pickup out of its intended local rush window.
+      if (/^\d{2}:\d{2}/.test(params.pickupLocalTime || '')) {
+        const [hour, minute] = params.pickupLocalTime!.split(':').map(Number)
+        pickupHour = hour
+        pickupMinute = minute
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(params.pickupLocalDate || '')) {
+        const [year, month, day] = params.pickupLocalDate!.split('-').map(Number)
+        dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+      }
       const currentTimeStr = `${pickupHour.toString().padStart(2, '0')}:${pickupMinute.toString().padStart(2, '0')}:00`
 
       const activeTimeMultiplier = timeMultipliers?.find(m => {
@@ -217,10 +240,9 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       })
 
       if (activeTimeMultiplier) {
-        const oldTotal = total
-        total *= Number(activeTimeMultiplier.multiplier)
+        timeMultiplier = Number(activeTimeMultiplier.multiplier)
         if (process.env.NODE_ENV === 'development') {
-          console.log(`Time multiplier applied: ${activeTimeMultiplier.multiplier} (Start: ${activeTimeMultiplier.start_time}, End: ${activeTimeMultiplier.end_time}), total ${oldTotal} -> ${total}`)
+          console.log(`Time multiplier selected: ${activeTimeMultiplier.multiplier} (Start: ${activeTimeMultiplier.start_time}, End: ${activeTimeMultiplier.end_time})`)
         }
       } else if (process.env.NODE_ENV === 'development') {
         console.log(`No active time multiplier found for ${currentTimeStr} on day ${dayOfWeek}`)
@@ -256,11 +278,10 @@ export async function calculateFare(params: PricingParams): Promise<number> {
             continue
           }
           
-          const oldTotal = total
-          total *= Number(rule.multiplier)
+          globalMultipliers.push(Number(rule.multiplier))
           
           if (process.env.NODE_ENV === 'development') {
-            console.log(`Rule ${rule.name} applied: multiplier ${rule.multiplier}, total ${oldTotal} -> ${total}`)
+            console.log(`Global rule ${rule.name} selected: multiplier ${rule.multiplier}`)
           }
         } catch (e) {
           console.error(`Error applying pricing rule ${rule.name}:`, e)
@@ -268,12 +289,20 @@ export async function calculateFare(params: PricingParams): Promise<number> {
       }
     }
 
-    if (minimumMeteredTotal > 0) {
-      total = Math.max(total, minimumMeteredTotal)
-    }
+    // Time and global multipliers compound on the vehicle ride fare. Multipliers
+    // may discount a ride, but never below its minimum; fixed charges and actual
+    // post-grace waiting are then added exactly once.
+    const composedFare = composeFare({
+      rideFare,
+      minimumRideFare,
+      timeMultiplier,
+      globalMultipliers,
+      fixedAddOns: fixedAddOnTotal,
+      waitCharge
+    })
 
     // Round to 2 decimals
-    return Math.round(total * 100) / 100
+    return Math.round(composedFare.total * 100) / 100
   } catch (error) {
     console.error('CRITICAL: calculateFare failed:', error)
     // Return a basic fallback if everything else fails, 

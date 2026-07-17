@@ -177,6 +177,8 @@ export async function getQuoteAction(data: BookingFormData & {
       distanceKm,
       vehicleTypeId: data.vehicleTypeId,
       pickupTime: new Date(`${data.date}T${data.time}`),
+      pickupLocalDate: data.date,
+      pickupLocalTime: data.time,
       pickupLocation: data.pickupLocation,
       dropoffLocation: data.dropoffLocation,
       meetAndGreet: data.meetAndGreet,

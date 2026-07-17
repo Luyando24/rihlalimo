@@ -344,6 +344,10 @@ export async function addPricingRule(formData: {
   effective_start?: string
   effective_end?: string
 }) {
+  if (!Number.isFinite(formData.multiplier) || formData.multiplier <= 0) {
+    return { error: 'Multiplier must be greater than zero' }
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -450,6 +454,13 @@ export async function addTimeMultiplier(formData: {
   multiplier: number
   day_of_week?: number
 }) {
+  if (!Number.isFinite(formData.multiplier) || formData.multiplier <= 0) {
+    return { error: 'Multiplier must be greater than zero' }
+  }
+  if (formData.day_of_week !== undefined && (formData.day_of_week < 0 || formData.day_of_week > 6)) {
+    return { error: 'Day of week must be between 0 and 6' }
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
