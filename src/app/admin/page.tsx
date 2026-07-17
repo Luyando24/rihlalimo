@@ -25,7 +25,7 @@ export default async function AdminPage() {
 
   const { data: bookings } = await supabase
     .from('bookings')
-    .select('*, profiles(full_name, email), vehicle_types(name)')
+    .select('*, profiles(full_name, email, phone), vehicle_types(name)')
     .order('created_at', { ascending: false })
 
   // Calculate real stats

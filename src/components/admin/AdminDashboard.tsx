@@ -76,6 +76,7 @@ import { Database } from '@/types/supabase'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 type Booking = Database['public']['Tables']['bookings']['Row'] & {
+    passenger_email?: string | null;
     vehicle_types?: { name: string } | null;
     profiles?: { full_name: string | null; email: string | null; phone: string | null } | null;
     driver?: { full_name: string | null; phone: string | null } | null;
@@ -580,12 +581,41 @@ function BookingsView({ bookings, drivers }: any) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {bookings && bookings.map((booking: any) => (
+                        {bookings && bookings.map((booking: Booking) => {
+                            const customerName = booking.passenger_name || booking.profiles?.full_name || 'Guest'
+                            const customerEmail = booking.passenger_email || booking.profiles?.email
+                            const customerPhone = booking.passenger_phone || booking.profiles?.phone
+
+                            return (
                             <tr key={booking.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-mono text-xs text-gray-500">#{booking.id.slice(0, 8)}</td>
-                                <td className="px-6 py-4">
-                                    <div className="font-medium">{booking.profiles?.full_name || 'Guest'}</div>
-                                    <div className="text-xs text-gray-400">{booking.contact_email}</div>
+                                <td className="px-6 py-4 min-w-[220px]">
+                                    <div className="font-medium mb-1.5">{customerName}</div>
+                                    <div className="space-y-1 text-xs">
+                                        {customerEmail && (
+                                            <a
+                                                href={`mailto:${customerEmail}`}
+                                                className="flex items-center gap-1.5 text-gray-500 hover:text-black break-all"
+                                                title={`Email ${customerName}`}
+                                            >
+                                                <LucideMail size={13} className="shrink-0" />
+                                                <span>{customerEmail}</span>
+                                            </a>
+                                        )}
+                                        {customerPhone && (
+                                            <a
+                                                href={`tel:${customerPhone}`}
+                                                className="flex items-center gap-1.5 text-gray-500 hover:text-black"
+                                                title={`Call ${customerName}`}
+                                            >
+                                                <LucidePhone size={13} className="shrink-0" />
+                                                <span className="whitespace-nowrap">{customerPhone}</span>
+                                            </a>
+                                        )}
+                                        {!customerEmail && !customerPhone && (
+                                            <span className="text-gray-400">No contact details</span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="capitalize font-medium text-gray-900">{booking.service_type.replace(/_/g, ' ')}</div>
@@ -607,7 +637,7 @@ function BookingsView({ bookings, drivers }: any) {
                                             <div className="mt-1 w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
                                             <span className="text-gray-600">{booking.pickup_location_address}</span>
                                         </div>
-                                        <div className="flex items-start gap-2 truncate" title={booking.dropoff_location_address}>
+                                        <div className="flex items-start gap-2 truncate" title={booking.dropoff_location_address || undefined}>
                                             <div className="mt-1 w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                                             <span className="text-gray-600">{booking.dropoff_location_address || 'As Directed'}</span>
                                         </div>
@@ -626,7 +656,7 @@ function BookingsView({ bookings, drivers }: any) {
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <StatusBadge status={booking.status} />
+                                    <StatusBadge status={booking.status || 'pending'} />
                                 </td>
                                 <td className="px-6 py-4 font-medium">${booking.total_price_calculated}</td>
                                 <td className="px-6 py-4">
@@ -685,7 +715,8 @@ function BookingsView({ bookings, drivers }: any) {
                                     </div>
                                 </td>
                             </tr>
-                        ))}
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>
