@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight, LucideTag } from 'lucide-react'
-import { getVehicleTypes, getQuoteAction, createBookingAction, initializePaymentAction, type BookingFormData, type PriceQuote } from '@/app/book/actions'
+import { getVehicleTypes, getQuoteAction, initializePaymentAction, type PriceQuote } from '@/app/book/actions'
 import { validateDiscountCode } from '@/app/admin/discount-actions'
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api'
 import { useSearchParams } from 'next/navigation'
@@ -506,21 +506,15 @@ export default function BookingWizard({ user, profile }: any) {
     }
   }
 
-  const handlePaymentSuccess = async () => {
-    setLoadingBooking(true)
-    const result = await createBookingAction({
-      ...formData,
-      discountId: appliedDiscount?.id || null,
-      promoCode: appliedDiscount?.code || null
-    })
-    setLoadingBooking(false)
-
-    if (result.success) {
-      setBookingResult((prev: any) => ({ ...prev, bookingId: result.bookingId, message: result.message }))
-      setStep(6)
-    } else {
-      alert(result.error || 'Failed to finalize booking after payment. Please contact support.')
-    }
+  const handlePaymentSubmitted = (paymentStatus: 'succeeded' | 'processing') => {
+    setBookingResult((prev: Record<string, unknown> | null) => ({
+      ...prev,
+      paymentStatus,
+      message: paymentStatus === 'succeeded'
+        ? 'Stripe accepted your payment. Your booking will be confirmed by our secure payment webhook, and confirmation will be emailed to you.'
+        : 'Stripe is still processing your payment. Your booking remains pending until Stripe confirms it.'
+    }))
+    setStep(6)
   }
 
   const handleValidatePromo = async () => {
@@ -1229,24 +1223,13 @@ export default function BookingWizard({ user, profile }: any) {
               <Elements stripe={stripePromise} options={{ clientSecret: bookingResult.clientSecret, appearance: { theme: 'stripe' } }}>
                 <CheckoutForm
                   clientSecret={bookingResult.clientSecret}
-                  amount={priceQuote?.price || 0}
-                  onSuccess={handlePaymentSuccess}
+                  amount={bookingResult.finalPrice || 0}
+                  onPaymentSubmitted={handlePaymentSubmitted}
                 />
               </Elements>
             ) : (
-              <div className="text-center">
-                <p className="text-gray-600 mb-6">Payment step is simulated for development.</p>
-                <button onClick={handlePaymentSuccess} disabled={loadingBooking} className="btn-primary w-full py-3 flex justify-center items-center gap-2 disabled:opacity-50">
-                  {loadingBooking ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Finalizing Booking...
-                    </>
-                  ) : 'Simulate Payment Success'}
-                </button>
+              <div className="text-center rounded-lg border border-red-200 bg-red-50 p-6">
+                <p className="text-red-700">Payment could not be initialized. Please return to the previous step and try again.</p>
               </div>
             )}
           </div>
@@ -1259,9 +1242,11 @@ export default function BookingWizard({ user, profile }: any) {
                 <LucideCheck className="w-10 h-10 text-green-600" />
               </div>
             </div>
-            <h2 className="text-3xl font-light mb-4 text-black">Booking Confirmed!</h2>
+            <h2 className="text-3xl font-light mb-4 text-black">
+              {bookingResult?.paymentStatus === 'processing' ? 'Payment Processing' : 'Payment Received'}
+            </h2>
             <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              Your booking has been successfully placed. <br />
+              Your booking remains pending until our server receives Stripe&apos;s signed confirmation. <br />
               Booking ID: <span className="font-mono font-bold">{bookingResult?.bookingId}</span>
             </p>
             <div className="bg-blue-50 p-4 rounded-lg max-w-md mx-auto mb-8 text-left">

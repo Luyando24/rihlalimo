@@ -54,8 +54,8 @@ export default async function DashboardPage() {
 
   // Calculate Stats
   const totalTrips = bookings?.length || 0
-  const upcomingTrips = bookings?.filter(b => ['pending', 'confirmed', 'assigned', 'on_route', 'arrived', 'picked_up'].includes(b.status)).length || 0
-  const totalSpent = bookings?.reduce((acc, b) => acc + (b.total_price_calculated || 0), 0) || 0
+  const upcomingTrips = bookings?.filter(b => b.payment_status === 'paid' && ['confirmed', 'assigned', 'on_route', 'arrived', 'picked_up'].includes(b.status)).length || 0
+  const totalSpent = bookings?.filter(b => b.payment_status === 'paid').reduce((acc, b) => acc + (b.total_price_calculated || 0), 0) || 0
 
   const stats = {
       totalTrips,

@@ -61,16 +61,23 @@ export async function assignDriver(bookingId: string, driverId: string) {
 
   const supabaseAdmin = createAdminClient()
 
-  const { error } = await supabaseAdmin
+  const { data: assignedBooking, error } = await supabaseAdmin
     .from('bookings')
     .update({
       driver_id: driverId,
       status: 'assigned'
     })
     .eq('id', bookingId)
+    .eq('payment_status', 'paid')
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     return { error: error.message }
+  }
+
+  if (!assignedBooking) {
+    return { error: 'Only paid bookings can be assigned to a driver' }
   }
 
   // Send email notification to driver

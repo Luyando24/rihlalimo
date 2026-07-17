@@ -39,6 +39,7 @@ export default async function DriverPage() {
     .from('bookings')
     .select('*')
     .eq('driver_id', user.id)
+    .eq('payment_status', 'paid')
     .order('pickup_time', { ascending: true })
 
   // Mock Earnings Data

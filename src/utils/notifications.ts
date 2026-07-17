@@ -1,9 +1,9 @@
-import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { sendEmail } from '@/utils/email'
 import { getEmailTemplate, formatBookingDetails } from './emailTemplates'
 
 export async function sendAdminNewBookingEmail(bookingId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     
     // 1. Fetch the booking details
     const { data: booking, error } = await supabase
@@ -66,7 +66,7 @@ export async function sendAdminNewBookingEmail(bookingId: string) {
 }
 
 export async function sendAdminNewDriverSignupEmail(driverId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     
     // 1. Fetch driver profile details
     const { data: profile, error: profileError } = await supabase
@@ -124,7 +124,7 @@ export async function sendAdminNewDriverSignupEmail(driverId: string) {
 }
 
 export async function sendAssignmentEmail(bookingId: string, driverId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     
     // Get Driver Email
     const { data: driver, error: driverError } = await supabase
@@ -179,7 +179,7 @@ export async function sendAssignmentEmail(bookingId: string, driverId: string) {
 }
 
 export async function sendCustomerBookingConfirmationEmail(bookingId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Fetch booking details
     const { data: booking, error: bookingError } = await supabase
@@ -202,7 +202,8 @@ export async function sendCustomerBookingConfirmationEmail(bookingId: string) {
         return { success: false, error: 'Booking not found' }
     }
 
-    if (!booking.passenger_email && !booking.profiles?.email) {
+    const customerEmail = booking.passenger_email || booking.profiles?.email
+    if (!customerEmail) {
         console.error('Customer email not found')
         return { success: false, error: 'Customer email not found' }
     }
@@ -226,7 +227,7 @@ export async function sendCustomerBookingConfirmationEmail(bookingId: string) {
     const text = `
 Booking Confirmed
 
-Hello ${booking.profiles.full_name || 'Valued Customer'},
+Hello ${booking.profiles?.full_name || booking.passenger_name || 'Valued Customer'},
 
 Thank you for choosing Rihla Limo. Your booking has been received and confirmed.
 
@@ -238,7 +239,7 @@ You can view your booking details by logging into your account.
     `.trim()
 
     return await sendEmail({
-        to: booking.passenger_email || booking.profiles.email,
+        to: customerEmail,
         subject,
         html,
         text
@@ -246,7 +247,7 @@ You can view your booking details by logging into your account.
 }
 
 export async function sendCustomerBookingStatusUpdateEmail(bookingId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Fetch booking details
     const { data: booking, error: bookingError } = await supabase
@@ -273,7 +274,8 @@ export async function sendCustomerBookingStatusUpdateEmail(bookingId: string) {
         return { success: false, error: 'Booking not found' }
     }
 
-    if (!booking.passenger_email && !booking.profiles?.email) {
+    const customerEmail = booking.passenger_email || booking.profiles?.email
+    if (!customerEmail) {
         console.error('Customer email not found')
         return { success: false, error: 'Customer email not found' }
     }
@@ -328,7 +330,7 @@ export async function sendCustomerBookingStatusUpdateEmail(bookingId: string) {
     const text = `
 ${statusSubject}
 
-Hello ${booking.profiles.full_name || 'Valued Customer'},
+Hello ${booking.profiles?.full_name || booking.passenger_name || 'Valued Customer'},
 
 ${statusMessage.replace(/<[^>]*>/g, '')}
 
@@ -337,7 +339,7 @@ Dropoff: ${booking.dropoff_location_address}
     `.trim()
 
     return await sendEmail({
-        to: booking.passenger_email || booking.profiles.email,
+        to: customerEmail,
         subject,
         html,
         text

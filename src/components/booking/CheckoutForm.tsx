@@ -7,7 +7,15 @@ import {
     useElements
 } from '@stripe/react-stripe-js'
 
-export default function CheckoutForm({ clientSecret, amount, onSuccess }: { clientSecret: string, amount: number, onSuccess: () => void }) {
+export default function CheckoutForm({
+    clientSecret,
+    amount,
+    onPaymentSubmitted
+}: {
+    clientSecret: string
+    amount: number
+    onPaymentSubmitted: (status: 'succeeded' | 'processing') => void
+}) {
     const stripe = useStripe()
     const elements = useElements()
 
@@ -52,10 +60,10 @@ export default function CheckoutForm({ clientSecret, amount, onSuccess }: { clie
 
         setIsLoading(true)
 
-        const { error } = await stripe.confirmPayment({
+        const { error, paymentIntent } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                return_url: window.location.origin + '/dashboard', // Fallback, we'll try to prevent default redirect if possible, but confirmPayment usually redirects if there's an action required or no redirect='if_required'.
+                return_url: window.location.origin + '/dashboard',
             },
             redirect: 'if_required',
         })
@@ -66,9 +74,12 @@ export default function CheckoutForm({ clientSecret, amount, onSuccess }: { clie
             } else {
                 setMessage('An unexpected error occurred.')
             }
+        } else if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
+            // This only advances the browser UI. The signed Stripe webhook is the
+            // sole authority that marks the database booking paid and confirmed.
+            onPaymentSubmitted(paymentIntent.status)
         } else {
-            // Payment succeeded!
-            onSuccess()
+            setMessage('Stripe has not confirmed the payment. Please try again.')
         }
 
         setIsLoading(false)

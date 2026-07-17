@@ -27,6 +27,7 @@ export async function acceptTrip(bookingId: string) {
         .update({ status: 'en_route' }) 
         .eq('id', bookingId)
         .eq('driver_id', user.id) // Ensure the driver owns this booking
+        .eq('payment_status', 'paid')
 
     if (error) {
         return { error: error.message }
@@ -54,6 +55,7 @@ export async function startTrip(bookingId: string) {
         .update({ status: 'in_progress', started_at: new Date().toISOString() })
         .eq('id', bookingId)
         .eq('driver_id', user.id)
+        .eq('payment_status', 'paid')
 
     if (error) {
         return { error: error.message }
@@ -81,6 +83,7 @@ export async function completeTrip(bookingId: string) {
         .update({ status: 'completed', completed_at: new Date().toISOString() })
         .eq('id', bookingId)
         .eq('driver_id', user.id)
+        .eq('payment_status', 'paid')
 
     if (error) {
         return { error: error.message }

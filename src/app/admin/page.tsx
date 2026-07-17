@@ -33,6 +33,7 @@ export default async function AdminPage() {
     .from('bookings')
     .select('*', { count: 'exact', head: true })
     .in('status', ['pending', 'confirmed', 'assigned', 'en_route', 'in_progress'])
+    .eq('payment_status', 'paid')
 
   const { count: totalDrivers } = await supabase
     .from('profiles')
