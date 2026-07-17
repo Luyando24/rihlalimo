@@ -408,10 +408,14 @@ export type Database = {
           id: string
           image_url: string | null
           min_hours_booking: number | null
+          minimum_fare_usd: number
           name: string
+          complimentary_wait_minutes: number
           price_per_distance_usd: number
           price_per_hour_usd: number
           price_per_mile_usd: number
+          price_per_minute_usd: number
+          wait_rate_per_minute_usd: number
         }
         Insert: {
           base_fare_usd: number
@@ -423,10 +427,14 @@ export type Database = {
           id?: string
           image_url?: string | null
           min_hours_booking?: number | null
+          minimum_fare_usd?: number
           name: string
+          complimentary_wait_minutes?: number
           price_per_distance_usd: number
           price_per_hour_usd: number
           price_per_mile_usd: number
+          price_per_minute_usd?: number
+          wait_rate_per_minute_usd?: number
         }
         Update: {
           base_fare_usd?: number
@@ -438,10 +446,14 @@ export type Database = {
           id?: string
           image_url?: string | null
           min_hours_booking?: number | null
+          minimum_fare_usd?: number
           name?: string
+          complimentary_wait_minutes?: number
           price_per_distance_usd?: number
           price_per_hour_usd?: number
           price_per_mile_usd?: number
+          price_per_minute_usd?: number
+          wait_rate_per_minute_usd?: number
         }
         Relationships: []
       }

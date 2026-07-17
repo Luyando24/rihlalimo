@@ -87,7 +87,7 @@ export default async function AirportsPage() {
                   </div>
                   <h3 className="text-xl font-bold mb-4">Complimentary Wait Time</h3>
                   <p className="text-gray-600">
-                      Take your time. We offer 60 minutes of complimentary wait time for all international and domestic arrivals.
+                      Take your time. We offer 10 minutes of complimentary wait time for all Sedan and SUV pickups.
                   </p>
               </div>
           </div>

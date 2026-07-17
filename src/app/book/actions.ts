@@ -46,6 +46,7 @@ export interface BookingFormData {
   checkedBagsCount?: number;
   carSeatsCount?: number;
   childAges?: string[];
+  waitMinutes?: number;
 }
 
 export async function getVehicleTypes() {
@@ -180,6 +181,7 @@ export async function getQuoteAction(data: BookingFormData & {
       dropoffLocation: data.dropoffLocation,
       meetAndGreet: data.meetAndGreet,
       carSeatsCount: data.carSeatsCount,
+      waitMinutes: data.waitMinutes,
       durationMinutes: data.serviceType === 'hourly' && data.hours ? data.hours * 60 : durationMinutes
     })
 

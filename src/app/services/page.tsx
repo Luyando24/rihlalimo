@@ -57,7 +57,7 @@ export default async function ServicesPage() {
                         <LucidePlane size={18} className="text-black" /> Flight Tracking
                     </li>
                     <li className="flex items-center gap-3 text-gray-700">
-                        <LucideClock size={18} className="text-black" /> 60 Minutes Complimentary Wait Time
+                        <LucideClock size={18} className="text-black" /> 10 Minutes Complimentary Wait Time
                     </li>
                     <li className="flex items-center gap-3 text-gray-700">
                         <LucideMapPin size={18} className="text-black" /> Meet & Greet Service

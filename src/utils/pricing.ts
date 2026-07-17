@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { calculateMeteredFare } from '@/utils/meteredPricing'
 
 interface PricingParams {
   serviceType: string
@@ -10,6 +11,7 @@ interface PricingParams {
   dropoffLocation?: string
   meetAndGreet?: boolean
   carSeatsCount?: number
+  waitMinutes?: number
 }
 
 const MEET_AND_GREET_FEE = 25.00
@@ -101,42 +103,65 @@ export async function calculateFare(params: PricingParams): Promise<number> {
 
     // Base calculation: Start with base fare
     let total = Number(vehicleType.base_fare_usd)
+    let minimumMeteredTotal = 0
     
     if (params.serviceType === 'point_to_point' || params.serviceType.includes('airport')) {
-      // Point-to-Point and Airport transfers are primarily distance-based
+      // Point-to-point and airport transfers use a metered base + miles + minutes
+      // model. Hourly-service pricing remains independent below.
       const distanceRate = Number(vehicleType.price_per_distance_usd) || 0
-      const timeRate = Number(vehicleType.price_per_hour_usd) || 0
-      
-      // Handle Distance Unit (Mile vs KM)
-      // Check for system default override
-      const systemUnitRule = rules?.find(r => r.name === 'SYSTEM_DEFAULT_DISTANCE_UNIT')
-      const distanceUnit = systemUnitRule ? systemUnitRule.description : vehicleType.distance_unit
+      const perMinuteRate = Number(vehicleType.price_per_minute_usd) || (Number(vehicleType.price_per_hour_usd) / 60) || 0
+      const minimumFare = Number(vehicleType.minimum_fare_usd) || 0
+      const waitPerMinute = Number(vehicleType.wait_rate_per_minute_usd) || 0
+      const complimentaryWaitMinutes = Number(vehicleType.complimentary_wait_minutes) || 0
 
-      let billableDistance = params.distanceKm
-      if (distanceUnit === 'mile') {
-        // Convert kilometers to miles (1 km = 0.621371 miles)
-        billableDistance = params.distanceKm * 0.621371
-      }
+      // The supplied rate cards are per mile. Convert both the measured distance
+      // and any legacy per-kilometer rate to a common per-mile calculation.
+      // The vehicle's unit describes the stored rate. The system-wide distance
+      // preference is display-only and must not reinterpret a per-mile rate.
+      const distanceUnit = vehicleType.distance_unit
+      const distanceMiles = params.distanceKm * 0.621371
+      const perMileRate = distanceUnit === 'mile'
+        ? distanceRate
+        : distanceRate / 0.621371
 
-      const distanceCharge = billableDistance * distanceRate
-      const timeCharge = (params.durationMinutes * (timeRate / 60))
-      
-      // Add distance and time charges to base fare
-      // Add distance and time charges to base fare plus extras
-      total += distanceCharge + timeCharge + airportFee + meetAndGreetFee + carSeatFeeTotal
+      const fare = calculateMeteredFare({
+        distanceMiles,
+        durationMinutes: params.durationMinutes,
+        waitMinutes: params.waitMinutes,
+        rule: {
+          baseFare: Number(vehicleType.base_fare_usd) || 0,
+          perMile: perMileRate,
+          perMinute: perMinuteRate,
+          minimumFare,
+          waitPerMinute,
+          complimentaryWaitMinutes
+        }
+      })
+
+      const addOnTotal = airportFee + meetAndGreetFee + carSeatFeeTotal
+      total = fare.total + addOnTotal
+      // If a multiplier is below 1, it still cannot discount the metered ride
+      // below its vehicle minimum or erase explicit add-ons/wait charges.
+      minimumMeteredTotal = minimumFare + fare.waitCharge + addOnTotal
       
       // Log for debugging (only in development)
       if (process.env.NODE_ENV === 'development') {
         console.log(`Fare Breakdown for ${params.serviceType}:`, {
-          baseFare: vehicleType.base_fare_usd,
+          baseFare: fare.baseFare,
           distanceKm: params.distanceKm,
-          billableDistance,
-          distanceUnit,
-          distanceRate,
-          distanceCharge,
+          distanceMiles,
+          perMileRate,
+          distanceCharge: fare.distanceCharge,
           duration: params.durationMinutes,
-          timeRate,
-          timeCharge,
+          perMinuteRate,
+          timeCharge: fare.timeCharge,
+          meteredFare: fare.meteredFare,
+          minimumFare,
+          rideFare: fare.rideFare,
+          complimentaryWaitMinutes,
+          billableWaitMinutes: fare.billableWaitMinutes,
+          waitPerMinute,
+          waitCharge: fare.waitCharge,
           airportFee,
           meetAndGreetFee,
           carSeatFeeTotal,
@@ -241,6 +266,10 @@ export async function calculateFare(params: PricingParams): Promise<number> {
           console.error(`Error applying pricing rule ${rule.name}:`, e)
         }
       }
+    }
+
+    if (minimumMeteredTotal > 0) {
+      total = Math.max(total, minimumMeteredTotal)
     }
 
     // Round to 2 decimals

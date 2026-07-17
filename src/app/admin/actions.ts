@@ -486,6 +486,10 @@ export async function addVehicleType(formData: {
   capacity_luggage: number
   base_fare_usd: number
   price_per_distance_usd: number
+  price_per_minute_usd: number
+  minimum_fare_usd: number
+  wait_rate_per_minute_usd: number
+  complimentary_wait_minutes: number
   distance_unit: 'km' | 'mile'
   price_per_hour_usd: number
   min_hours_booking: number
@@ -513,6 +517,10 @@ export async function updateVehicleType(id: string, formData: {
   capacity_luggage?: number
   base_fare_usd?: number
   price_per_distance_usd?: number
+  price_per_minute_usd?: number
+  minimum_fare_usd?: number
+  wait_rate_per_minute_usd?: number
+  complimentary_wait_minutes?: number
   distance_unit?: 'km' | 'mile'
   price_per_hour_usd?: number
   min_hours_booking?: number

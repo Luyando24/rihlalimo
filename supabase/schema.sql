@@ -41,6 +41,10 @@ create table public.vehicle_types (
   base_fare_usd decimal(10,2) not null, -- Base price
   price_per_distance_usd decimal(10,2) not null,
   distance_unit text default 'km' check (distance_unit in ('mile', 'km')),
+  price_per_minute_usd decimal(10,2) not null default 0,
+  minimum_fare_usd decimal(10,2) not null default 0,
+  wait_rate_per_minute_usd decimal(10,2) not null default 0,
+  complimentary_wait_minutes int not null default 10,
   price_per_hour_usd decimal(10,2) not null, -- For hourly services
   min_hours_booking int default 2,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null

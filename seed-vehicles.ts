@@ -21,14 +21,18 @@ async function seed() {
 
   const vehicleTypes = [
     {
-      name: 'Business Class',
+      name: 'Premium Sedan',
       description: 'Mercedes-Benz E-Class, BMW 5 Series, or similar',
       capacity_passengers: 3,
       capacity_luggage: 2,
       image_url: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&q=80&w=2070',
-      base_fare_usd: 45.00,
-      price_per_distance_usd: 3.00,
+      base_fare_usd: 12.00,
+      price_per_distance_usd: 3.40,
       distance_unit: 'mile',
+      price_per_minute_usd: 0.55,
+      minimum_fare_usd: 35.00,
+      wait_rate_per_minute_usd: 1.25,
+      complimentary_wait_minutes: 10,
       price_per_hour_usd: 85.00,
       min_hours_booking: 2
     },
@@ -45,14 +49,18 @@ async function seed() {
       min_hours_booking: 3
     },
     {
-      name: 'Business Van',
+      name: 'Black SUV',
       description: 'Mercedes-Benz V-Class, Chevrolet Suburban, or similar',
       capacity_passengers: 6,
       capacity_luggage: 6,
       image_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=2069',
-      base_fare_usd: 65.00,
-      price_per_distance_usd: 4.00,
+      base_fare_usd: 22.00,
+      price_per_distance_usd: 4.80,
       distance_unit: 'mile',
+      price_per_minute_usd: 0.75,
+      minimum_fare_usd: 60.00,
+      wait_rate_per_minute_usd: 1.75,
+      complimentary_wait_minutes: 10,
       price_per_hour_usd: 100.00,
       min_hours_booking: 3
     }

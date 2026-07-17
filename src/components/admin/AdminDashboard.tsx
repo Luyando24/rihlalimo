@@ -90,6 +90,23 @@ type Vehicle = Database['public']['Tables']['vehicles']['Row'] & {
     vehicle_types?: { name: string } | null;
 }
 type VehicleType = Database['public']['Tables']['vehicle_types']['Row']
+type VehicleTypeFormData = {
+    name: string
+    description: string
+    capacity_passengers: number
+    capacity_luggage: number
+    base_fare_usd: number
+    price_per_distance_usd: number
+    price_per_minute_usd: number
+    minimum_fare_usd: number
+    wait_rate_per_minute_usd: number
+    complimentary_wait_minutes: number
+    distance_unit: 'km' | 'mile'
+    price_per_hour_usd: number
+    min_hours_booking: number
+    image_url: string
+    car_seat_price_usd: number
+}
 type NewsPost = Database['public']['Tables']['stripe_events']['Row'] // Fallback if no news table, or check actual table name
 type Discount = { id: string; code: string; type: 'percentage' | 'fixed'; value: number; active: boolean }
 
@@ -1550,6 +1567,60 @@ function AdminsView({ admins, currentUser }: any) {
     )
 }
 
+function MeteredPricingFields({
+    values,
+    onChange
+}: {
+    values: VehicleTypeFormData
+    onChange: (patch: Partial<VehicleTypeFormData>) => void
+}) {
+    return (
+        <>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase">Minimum Fare ($)</label>
+                    <input
+                        type="number" required min="0" step="0.01"
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                        value={values.minimum_fare_usd}
+                        onChange={e => onChange({ minimum_fare_usd: parseFloat(e.target.value) })}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase">Driving Rate ($/min)</label>
+                    <input
+                        type="number" required min="0" step="0.01"
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                        value={values.price_per_minute_usd}
+                        onChange={e => onChange({ price_per_minute_usd: parseFloat(e.target.value) })}
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase">Wait Rate ($/min)</label>
+                    <input
+                        type="number" required min="0" step="0.01"
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                        value={values.wait_rate_per_minute_usd}
+                        onChange={e => onChange({ wait_rate_per_minute_usd: parseFloat(e.target.value) })}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase">Free Wait (minutes)</label>
+                    <input
+                        type="number" required min="0" step="1"
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                        value={values.complimentary_wait_minutes}
+                        onChange={e => onChange({ complimentary_wait_minutes: parseInt(e.target.value) })}
+                    />
+                </div>
+            </div>
+        </>
+    )
+}
+
 function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] }) {
     const router = useRouter()
     const [activeSubTab, setActiveSubTab] = useState<'vehicles' | 'types'>('vehicles')
@@ -1571,25 +1642,17 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
         status: 'active'
     })
 
-    const [typeFormData, setTypeFormData] = useState<{
-        name: string
-        description: string
-        capacity_passengers: number
-        capacity_luggage: number
-        base_fare_usd: number
-        price_per_distance_usd: number
-        distance_unit: 'km' | 'mile'
-        price_per_hour_usd: number
-        min_hours_booking: number
-        image_url: string
-        car_seat_price_usd: number
-    }>({
+    const [typeFormData, setTypeFormData] = useState<VehicleTypeFormData>({
         name: '',
         description: '',
         capacity_passengers: 4,
         capacity_luggage: 2,
         base_fare_usd: 50,
         price_per_distance_usd: 3.5,
+        price_per_minute_usd: 0,
+        minimum_fare_usd: 0,
+        wait_rate_per_minute_usd: 0,
+        complimentary_wait_minutes: 10,
         distance_unit: 'km',
         price_per_hour_usd: 80,
         min_hours_booking: 2,
@@ -1606,6 +1669,10 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
             capacity_luggage: type.capacity_luggage,
             base_fare_usd: type.base_fare_usd,
             price_per_distance_usd: type.price_per_distance_usd,
+            price_per_minute_usd: type.price_per_minute_usd || 0,
+            minimum_fare_usd: type.minimum_fare_usd || 0,
+            wait_rate_per_minute_usd: type.wait_rate_per_minute_usd || 0,
+            complimentary_wait_minutes: type.complimentary_wait_minutes ?? 10,
             distance_unit: (type.distance_unit || 'km') as 'km' | 'mile',
             price_per_hour_usd: type.price_per_hour_usd,
             min_hours_booking: type.min_hours_booking || 2,
@@ -1631,6 +1698,10 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                 capacity_luggage: 2,
                 base_fare_usd: 50,
                 price_per_distance_usd: 3.5,
+                price_per_minute_usd: 0,
+                minimum_fare_usd: 0,
+                wait_rate_per_minute_usd: 0,
+                complimentary_wait_minutes: 10,
                 distance_unit: 'km',
                 price_per_hour_usd: 80,
                 min_hours_booking: 2,
@@ -1677,6 +1748,10 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                 capacity_luggage: 2,
                 base_fare_usd: 50,
                 price_per_distance_usd: 3.5,
+                price_per_minute_usd: 0,
+                minimum_fare_usd: 0,
+                wait_rate_per_minute_usd: 0,
+                complimentary_wait_minutes: 10,
                 distance_unit: 'km',
                 price_per_hour_usd: 80,
                 min_hours_booking: 2,
@@ -1863,7 +1938,10 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                         </td>
                                         <td className="px-6 py-4 text-xs text-gray-500">
                                             <div>${type.price_per_distance_usd}/{type.distance_unit === 'km' ? 'km' : 'mi'}</div>
+                                            <div>${type.price_per_minute_usd || 0}/min driving</div>
                                             <div>${type.price_per_hour_usd}/hr</div>
+                                            <div className="mt-1">${type.minimum_fare_usd || 0} minimum</div>
+                                            <div>${type.wait_rate_per_minute_usd || 0}/min wait after {type.complimentary_wait_minutes ?? 10} min</div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex gap-2">
@@ -2100,6 +2178,11 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                 </div>
                             </div>
 
+                            <MeteredPricingFields
+                                values={typeFormData}
+                                onChange={patch => setTypeFormData(current => ({ ...current, ...patch }))}
+                            />
+
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Min. Hours Booking</label>
                                 <input
@@ -2243,6 +2326,11 @@ function FleetView({ fleet, vehicleTypes }: { fleet: any[], vehicleTypes: any[] 
                                     />
                                 </div>
                             </div>
+
+                            <MeteredPricingFields
+                                values={typeFormData}
+                                onChange={patch => setTypeFormData(current => ({ ...current, ...patch }))}
+                            />
 
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Min. Hours Booking</label>
