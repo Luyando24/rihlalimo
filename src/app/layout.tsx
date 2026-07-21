@@ -9,6 +9,8 @@ const geistSans = { variable: "--font-sans" };
 const geistMono = { variable: "--font-mono" };
 
 const defaultUrl = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : new URL('https://www.rihlaride.com');
+const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() || 'AW-18320205966';
+const googleAnalyticsId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim();
 
 export const metadata: Metadata = {
   metadataBase: defaultUrl,
@@ -94,16 +96,18 @@ export default async function RootLayout({
       >
         {/* Google tag (gtag.js) */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18320205966"
+          src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`}
           strategy="afterInteractive"
         />
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
             gtag('js', new Date());
 
-            gtag('config', 'AW-18320205966');
+            gtag('config', ${JSON.stringify(googleAdsId)});
+            ${googleAnalyticsId ? `gtag('config', ${JSON.stringify(googleAnalyticsId)});` : ''}
           `}
         </Script>
         <div className="pb-20 md:pb-0 min-h-screen">

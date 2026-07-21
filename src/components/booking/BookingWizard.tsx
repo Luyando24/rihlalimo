@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { LucideMapPin, LucideCalendar, LucideCar, LucideCreditCard, LucideCheck, LucideUsers, LucideBriefcase, LucidePlane, LucideInfo, LucideArrowLeft, LucideArrowRight, LucideTag } from 'lucide-react'
 import { getVehicleTypes, getQuoteAction, initializePaymentAction, type PriceQuote } from '@/app/book/actions'
 import { validateDiscountCode } from '@/app/admin/discount-actions'
@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import CheckoutForm from './CheckoutForm'
+import { trackBookingEvent } from '@/utils/analytics'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
 
@@ -78,6 +79,14 @@ export default function BookingWizard({ user, profile }: any) {
   const [appliedDiscount, setAppliedDiscount] = useState<any>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [isValidatingPromo, setIsValidatingPromo] = useState(false)
+
+  useEffect(() => {
+    trackBookingEvent('booking_funnel_started')
+  }, [])
+
+  useEffect(() => {
+    trackBookingEvent('booking_step_viewed', { step })
+  }, [step])
 
   // Load vehicles on mount
   useEffect(() => {
@@ -459,7 +468,17 @@ export default function BookingWizard({ user, profile }: any) {
 
       if (result.success && result.quote) {
         setPriceQuote(result.quote)
+        trackBookingEvent('quote_generated', {
+          value: Number(result.quote.price),
+          currency: result.quote.currency,
+          service_type: formData.serviceType,
+          vehicle_type_id: formData.vehicleTypeId,
+          distance_km: Number(result.quote.distanceKm.toFixed(2))
+        })
       } else {
+        trackBookingEvent('quote_failed', {
+          service_type: formData.serviceType
+        })
         alert(result.error || 'Failed to calculate price')
         setLoadingQuote(false)
         return // Stay on step 3 if quote fails
@@ -473,6 +492,17 @@ export default function BookingWizard({ user, profile }: any) {
 
   const handleVehicleSelect = (vehicle: any) => {
     updateFormData('vehicleTypeId', vehicle.id)
+    trackBookingEvent('vehicle_selected', {
+      vehicle_type_id: vehicle.id,
+      vehicle_name: vehicle.name
+    })
+  }
+
+  const handleServiceSelect = (serviceType: ServiceType) => {
+    updateFormData('serviceType', serviceType)
+    trackBookingEvent('service_selected', {
+      service_type: serviceType
+    })
   }
 
   const handleBooking = async () => {
@@ -501,7 +531,16 @@ export default function BookingWizard({ user, profile }: any) {
     if (result.success) {
       setBookingResult(result)
       setStep(5)
+      trackBookingEvent('begin_checkout', {
+        value: result.finalPrice || 0,
+        currency: 'USD',
+        service_type: formData.serviceType,
+        vehicle_type_id: formData.vehicleTypeId
+      })
     } else {
+      trackBookingEvent('checkout_initialization_failed', {
+        service_type: formData.serviceType
+      })
       alert(result.error || 'Payment initialization failed')
     }
   }
@@ -515,6 +554,13 @@ export default function BookingWizard({ user, profile }: any) {
         : 'Stripe is still processing your payment. Your booking remains pending until Stripe confirms it.'
     }))
     setStep(6)
+    trackBookingEvent('payment_confirmation_started', {
+      payment_status: paymentStatus
+    })
+
+    if (confirmationPath !== '/book') {
+      window.location.assign(confirmationPath)
+    }
   }
 
   const handleValidatePromo = async () => {
@@ -551,6 +597,9 @@ export default function BookingWizard({ user, profile }: any) {
   }
 
   const finalPrice = calculateFinalPrice()
+  const confirmationPath = bookingResult?.bookingId && bookingResult?.confirmationToken
+    ? `/book/confirmation?booking_id=${encodeURIComponent(bookingResult.bookingId)}&token=${encodeURIComponent(bookingResult.confirmationToken)}`
+    : '/book'
 
   const selectedVehicle = vehicles.find(v => v.id === formData.vehicleTypeId)
   const isSUV = selectedVehicle ? 
@@ -696,25 +745,25 @@ export default function BookingWizard({ user, profile }: any) {
                 title="Point-to-Point"
                 description="Direct transfer between two locations"
                 selected={formData.serviceType === 'point_to_point'}
-                onClick={() => updateFormData('serviceType', 'point_to_point')}
+                onClick={() => handleServiceSelect('point_to_point')}
               />
               <ServiceCard
                 title="Hourly Charter"
                 description="Chauffeur at your disposal for a set time"
                 selected={formData.serviceType === 'hourly'}
-                onClick={() => updateFormData('serviceType', 'hourly')}
+                onClick={() => handleServiceSelect('hourly')}
               />
               <ServiceCard
                 title="Airport Pickup"
                 description="Arrival transfer from LAX or other airports"
                 selected={formData.serviceType === 'airport_pickup'}
-                onClick={() => updateFormData('serviceType', 'airport_pickup')}
+                onClick={() => handleServiceSelect('airport_pickup')}
               />
               <ServiceCard
                 title="Airport Drop-off"
                 description="Departure transfer to the airport"
                 selected={formData.serviceType === 'airport_dropoff'}
-                onClick={() => updateFormData('serviceType', 'airport_dropoff')}
+                onClick={() => handleServiceSelect('airport_dropoff')}
               />
             </div>
             <div className="flex justify-between mt-8">
@@ -1224,6 +1273,7 @@ export default function BookingWizard({ user, profile }: any) {
                 <CheckoutForm
                   clientSecret={bookingResult.clientSecret}
                   amount={bookingResult.finalPrice || 0}
+                  returnPath={confirmationPath}
                   onPaymentSubmitted={handlePaymentSubmitted}
                 />
               </Elements>

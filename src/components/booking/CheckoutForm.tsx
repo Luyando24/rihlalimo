@@ -6,14 +6,17 @@ import {
     useStripe,
     useElements
 } from '@stripe/react-stripe-js'
+import { trackBookingEvent } from '@/utils/analytics'
 
 export default function CheckoutForm({
     clientSecret,
     amount,
+    returnPath,
     onPaymentSubmitted
 }: {
     clientSecret: string
     amount: number
+    returnPath: string
     onPaymentSubmitted: (status: 'succeeded' | 'processing') => void
 }) {
     const stripe = useStripe()
@@ -50,6 +53,13 @@ export default function CheckoutForm({
         })
     }, [stripe, clientSecret])
 
+    useEffect(() => {
+        trackBookingEvent('payment_form_viewed', {
+            value: amount,
+            currency: 'USD'
+        })
+    }, [amount])
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
@@ -59,11 +69,15 @@ export default function CheckoutForm({
         }
 
         setIsLoading(true)
+        trackBookingEvent('payment_submitted', {
+            value: amount,
+            currency: 'USD'
+        })
 
         const { error, paymentIntent } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                return_url: window.location.origin + '/dashboard',
+                return_url: window.location.origin + returnPath,
             },
             redirect: 'if_required',
         })
@@ -74,9 +88,18 @@ export default function CheckoutForm({
             } else {
                 setMessage('An unexpected error occurred.')
             }
+            trackBookingEvent('payment_error', {
+                error_type: error.type,
+                error_code: error.code || 'unknown'
+            })
         } else if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
             // This only advances the browser UI. The signed Stripe webhook is the
             // sole authority that marks the database booking paid and confirmed.
+            trackBookingEvent('payment_accepted_by_stripe', {
+                payment_status: paymentIntent.status,
+                value: amount,
+                currency: 'USD'
+            })
             onPaymentSubmitted(paymentIntent.status)
         } else {
             setMessage('Stripe has not confirmed the payment. Please try again.')

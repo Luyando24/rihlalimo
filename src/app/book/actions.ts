@@ -7,6 +7,10 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import { Client, TravelMode, UnitSystem } from "@googlemaps/google-maps-services-js"
 import { getSystemDistanceUnit } from '@/app/admin/actions'
 import { validateDiscountCode } from '@/app/admin/discount-actions'
+import {
+  createBookingConfirmationToken,
+  verifyBookingConfirmationToken
+} from '@/utils/bookingConfirmation'
 
 const googleMapsClient = new Client({});
 
@@ -341,6 +345,7 @@ export async function initializePaymentAction(bookingData: BookingFormData) {
       return {
         success: true,
         bookingId: booking.id,
+        confirmationToken: createBookingConfirmationToken(booking.id),
         clientSecret: paymentIntent.client_secret,
         message: 'Payment initialized.',
         finalPrice: amountInCents / 100
@@ -363,5 +368,60 @@ export async function initializePaymentAction(bookingData: BookingFormData) {
       success: false,
       error: error instanceof Error ? error.message : 'Payment initialization failed'
     }
+  }
+}
+
+const BOOKING_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const CONFIRMED_BOOKING_STATUSES = new Set([
+  'confirmed',
+  'assigned',
+  'en_route',
+  'in_progress',
+  'completed'
+])
+
+export async function getBookingConfirmationAction({
+  bookingId,
+  confirmationToken
+}: {
+  bookingId: string
+  confirmationToken: string
+}) {
+  if (
+    !BOOKING_ID_PATTERN.test(bookingId) ||
+    !verifyBookingConfirmationToken(bookingId, confirmationToken)
+  ) {
+    return { success: false, error: 'This booking confirmation link is invalid or expired.' }
+  }
+
+  const supabaseAdmin = createAdminClient()
+  const { data: booking, error } = await supabaseAdmin
+    .from('bookings')
+    .select('id, status, payment_status, total_price_calculated, service_type, vehicle_type_id')
+    .eq('id', bookingId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Booking confirmation lookup failed:', error)
+    return { success: false, error: 'We could not verify your booking yet. Please try again.' }
+  }
+
+  if (!booking) {
+    return { success: false, error: 'Booking not found.' }
+  }
+
+  const confirmed =
+    booking.payment_status === 'paid' &&
+    CONFIRMED_BOOKING_STATUSES.has(booking.status)
+
+  return {
+    success: true,
+    confirmed,
+    status: booking.status,
+    paymentStatus: booking.payment_status,
+    amount: Number(booking.total_price_calculated),
+    currency: 'USD',
+    serviceType: booking.service_type,
+    vehicleTypeId: booking.vehicle_type_id
   }
 }
